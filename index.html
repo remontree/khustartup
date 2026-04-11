@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUSI AEROSPACE | Suborbital Launch Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"IBM Plex Sans"', 'sans-serif'], mono: ['"IBM Plex Mono"', 'monospace'] },
+                    colors: {
+                        carbon: {
+                            bg: '#161616',
+                            layer1: '#262626',
+                            layer2: '#393939',
+                            border: '#393939',
+                            borderSub: '#525252',
+                            textPrimary: '#f4f4f4',
+                            textSecondary: '#c6c6c6',
+                            textHelper: '#8d8d8d',
+                            textPlaceholder: '#6f6f6f',
+                            blue: '#0f62fe',
+                            blueHover: '#0353e9',
+                            green: '#42be65',
+                            purple: '#a56eff',
+                            red: '#da1e28',
+                            orange: '#ff832b',
+                            cyan: '#08bdba',
+                            teal: '#009d9a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --carbon-bg: #161616;
+            --carbon-layer1: #262626;
+            --carbon-layer2: #393939;
+            --carbon-border: #393939;
+            --carbon-blue: #0f62fe;
+            --carbon-text: #f4f4f4;
+            --carbon-text2: #c6c6c6;
+            --carbon-text3: #8d8d8d;
+        }
+        body { background-color: var(--carbon-bg); color: var(--carbon-text); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--carbon-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--carbon-layer2); }
+
+        .border-carbon { border: 1px solid var(--carbon-border); }
+        .border-carbon-top { border-top: 1px solid var(--carbon-border); }
+
+        /* NAV */
+        .nav-blur { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .nav-link { position: relative; }
+        .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--carbon-blue); transition: width 0.3s ease; }
+        .nav-link:hover::after { width: 100%; }
+
+        /* CONOPS Parabolic */
+        .conops-rocket-icon { filter: drop-shadow(0px 0px 12px rgba(15,98,254,0.6)); transition: transform 0.1s; }
+        .conops-node { transition: all 0.3s ease; }
+        .conops-node.active { background-color: var(--carbon-blue); border-color: var(--carbon-blue); box-shadow: 0 0 12px rgba(15,98,254,0.8); }
+
+        /* SVG Animations */
+        @keyframes liquidDrain { 0% { transform: scaleY(0.9); fill: #0f62fe; } 50% { transform: scaleY(0.4); fill: #0043ce; } 100% { transform: scaleY(0.1); fill: #002d9c; } }
+        @keyframes needleSpin { 0% { transform: rotate(45deg); } 50% { transform: rotate(-30deg); } 100% { transform: rotate(-80deg); } }
+        @keyframes gasExpand { 0% { opacity: 0.2; transform: scaleY(0.1); } 50% { opacity: 0.5; transform: scaleY(0.6); } 100% { opacity: 0.8; transform: scaleY(0.9); } }
+        .svg-liquid { transform-origin: bottom; animation: liquidDrain 5s cubic-bezier(0.4,0,0.2,1) infinite alternate; }
+        .svg-gauge-needle { transform-origin: 50% 90%; animation: needleSpin 5s cubic-bezier(0.4,0,0.2,1) infinite alternate; }
+        .svg-gas { transform-origin: top; animation: gasExpand 5s cubic-bezier(0.4,0,0.2,1) infinite alternate; }
+
+        @keyframes particleFlow1 { 0% { transform: translate(0,0) scale(1); opacity: 0; } 20% { opacity: 1; transform: translate(60px,0) scale(1); } 40% { transform: translate(110px,0) scale(0.8); } 60% { transform: translate(160px,-15px) scale(1.5); opacity: 0.8; } 100% { transform: translate(250px,-25px) scale(2.5); opacity: 0; } }
+        @keyframes particleFlow2 { 0% { transform: translate(0,0) scale(1); opacity: 0; } 20% { opacity: 1; transform: translate(60px,0) scale(1); } 40% { transform: translate(110px,0) scale(0.7); } 60% { transform: translate(160px,15px) scale(1.8); opacity: 0.7; } 100% { transform: translate(250px,25px) scale(3); opacity: 0; } }
+        .flow-p1 { animation: particleFlow1 2s linear infinite; }
+        .flow-p2 { animation: particleFlow2 2.2s linear infinite 0.5s; }
+        .flow-p3 { animation: particleFlow1 1.8s linear infinite 1.1s; }
+        .flow-p4 { animation: particleFlow2 2.5s linear infinite 1.6s; }
+
+        @keyframes boreExpand { 0% { r: 10; fill: #ff832b; stroke-width: 2; opacity: 1; } 50% { r: 40; fill: #da1e28; stroke-width: 5; opacity: 0.9; } 100% { r: 75; fill: #750e13; stroke-width: 8; opacity: 0.7; } }
+        @keyframes glowPulse { 0% { filter: drop-shadow(0 0 10px #ff832b); } 50% { filter: drop-shadow(0 0 25px #da1e28); } 100% { filter: drop-shadow(0 0 15px #ff832b); } }
+        .svg-burn-core { animation: boreExpand 5s cubic-bezier(0.25,0.1,0.25,1) infinite alternate, glowPulse 2s ease-in-out infinite alternate; }
+
+        @keyframes radarPing { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+        .radar-node::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--carbon-blue); animation: radarPing 2s cubic-bezier(0,0,0.2,1) infinite; }
+
+        .expansion-card:hover .icon-glow { filter: drop-shadow(0 0 15px rgba(15,98,254,0.5)); transform: scale(1.1); }
+
+        .img-grid-item { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%) brightness(0.7); transition: all 0.5s ease; }
+        .img-grid-item:hover { filter: grayscale(0%) brightness(1); transform: scale(1.05); }
+
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .marquee-track { animation: marquee 30s linear infinite; }
+        .marquee-track:hover { animation-play-state: paused; }
+        .stat-glow { text-shadow: 0 0 30px rgba(15,98,254,0.4); }
+
+        @keyframes float { 0%,100% { transform: translateY(0) translateX(0); } 25% { transform: translateY(-20px) translateX(10px); } 50% { transform: translateY(-10px) translateX(-5px); } 75% { transform: translateY(-30px) translateX(15px); } }
+        .particle { position: absolute; width: 2px; height: 2px; background: rgba(15,98,254,0.2); border-radius: 50%; }
+
+        .customer-card { transition: all 0.4s cubic-bezier(0.4,0,0.2,1); }
+        .customer-card:hover { transform: translateY(-8px); border-color: rgba(15,98,254,0.5); box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(15,98,254,0.15); }
+
+        .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+        .faq-answer.open { max-height: 300px; }
+        .faq-chevron { transition: transform 0.3s ease; }
+        .faq-chevron.open { transform: rotate(180deg); }
+
+        html { scroll-behavior: smooth; }
+        @keyframes slideDown { 0% { top:-50% } 100% { top:100% } }
+
+        /* Video crop for main video */
+        .video-crop-container { overflow: hidden; }
+        .video-crop-container video { width: 120%; height: 105%; object-fit: cover; margin-top: 1%; }
+
+        /* Carbon tag style */
+        .carbon-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; font-size: 12px; border-radius: 100px; }
+    </style>
+</head>
+<body>
+
+    <!-- FIXED NAVIGATION -->
+    <nav id="main-nav" class="fixed top-0 left-0 right-0 z-50 nav-blur bg-[#161616]/80 border-b border-[#393939]/50 transition-all duration-500">
+        <div class="max-w-[1584px] mx-auto px-8 h-12 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-2 text-white font-semibold text-sm tracking-tight">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L15 9.5L22 10.5L17 16L18.5 23L12 19L5.5 23L7 16L2 10.5L9 9.5L12 2Z" fill="#0f62fe" stroke="#0f62fe" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                TUSI AEROSPACE
+            </a>
+            <div class="hidden md:flex items-center gap-8 text-xs font-mono text-carbon-textHelper">
+                <a href="#market" class="nav-link hover:text-white transition">Market</a>
+                <a href="#conops" class="nav-link hover:text-white transition">CONOPS</a>
+                <a href="#tech" class="nav-link hover:text-white transition">Technology</a>
+                <a href="#heritage" class="nav-link hover:text-white transition">Heritage</a>
+                <a href="#team" class="nav-link hover:text-white transition">Team</a>
+                <a href="#contact" class="nav-link hover:text-white transition">Contact</a>
+            </div>
+            <a href="#contact" class="hidden md:inline-flex px-4 py-1.5 text-xs font-medium bg-carbon-blue hover:bg-carbon-blueHover text-white transition-colors">문의하기</a>
+            <button id="mobile-menu-btn" class="md:hidden text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-[#262626] border-t border-[#393939] px-8 py-4 space-y-3">
+            <a href="#market" class="block text-sm text-carbon-textHelper hover:text-white py-2">Market</a>
+            <a href="#conops" class="block text-sm text-carbon-textHelper hover:text-white py-2">CONOPS</a>
+            <a href="#tech" class="block text-sm text-carbon-textHelper hover:text-white py-2">Technology</a>
+            <a href="#heritage" class="block text-sm text-carbon-textHelper hover:text-white py-2">Heritage</a>
+            <a href="#team" class="block text-sm text-carbon-textHelper hover:text-white py-2">Team</a>
+            <a href="#contact" class="block text-sm text-carbon-textHelper hover:text-white py-2">Contact</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="relative h-screen flex flex-col justify-center items-center overflow-hidden bg-carbon-bg">
+        <div class="absolute inset-0 z-0 opacity-30">
+            <img src="1.jpg" class="w-full h-full object-cover" alt="Deep Space">
+            <div class="absolute inset-0 bg-gradient-to-t from-[#161616] via-transparent to-[#161616]"></div>
+        </div>
+        <div class="absolute inset-0 z-[1] overflow-hidden" id="particles-container"></div>
+        <div class="z-10 text-center px-8 mt-10">
+            <div class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper mb-6 font-mono gsap-hero">TUSI Aerospace Launch Service</div>
+            <h1 class="text-5xl md:text-[88px] font-bold tracking-tight text-white mb-6 leading-[1.05] gsap-hero">THE KARMAN LINE,<br>REALIZED.</h1>
+            <p class="text-base md:text-lg text-carbon-textSecondary max-w-2xl mx-auto font-light leading-relaxed gsap-hero">
+                가장 경제적이고 안전한 N₂O/HDPE 하이브리드 로켓.<br>당신의 비전을 100km 우주 환경으로 수송합니다.
+            </p>
+            <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center gsap-hero">
+                <a href="#contact" class="px-8 py-3.5 bg-carbon-blue hover:bg-carbon-blueHover text-white font-medium text-sm transition-colors">발사 서비스 문의</a>
+                <a href="#conops" class="px-8 py-3.5 border border-[#f4f4f4] text-white font-medium text-sm hover:bg-white/10 transition-colors">미션 프로파일 보기</a>
+            </div>
+        </div>
+        <div class="absolute bottom-12 flex flex-col items-center opacity-50 z-10">
+            <span class="text-[10px] tracking-[0.16em] uppercase mb-4 font-mono">Initiate Sequence</span>
+            <div class="w-[1px] h-20 bg-white/20 overflow-hidden relative"><div class="w-full h-1/2 bg-carbon-blue absolute top-0 animate-[slideDown_2s_ease-in-out_infinite]"></div></div>
+        </div>
+    </section>
+
+    <!-- MARQUEE -->
+    <section class="py-4 bg-carbon-layer1 border-y border-carbon-border overflow-hidden">
+        <div class="marquee-track flex items-center gap-16 whitespace-nowrap w-max">
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">100km</span> 카르만 라인 도달 목표</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">3~5kN</span> 엔진 추력 스케일</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">&lt;3%</span> 시뮬레이션 오차율</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">1,455+</span> 파라메트릭 케이스</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">N₂O/HDPE</span> 친환경 추진</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">100km</span> 카르만 라인 도달 목표</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">3~5kN</span> 엔진 추력 스케일</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">&lt;3%</span> 시뮬레이션 오차율</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">1,455+</span> 파라메트릭 케이스</span><span class="text-carbon-border">│</span>
+            <span class="text-carbon-textHelper text-sm font-mono flex items-center gap-3"><span class="text-white font-semibold text-xl stat-glow">N₂O/HDPE</span> 친환경 추진</span><span class="text-carbon-border">│</span>
+        </div>
+    </section>
+
+    <!-- KEY METRICS -->
+    <section class="py-24 bg-carbon-bg border-carbon-top relative overflow-hidden">
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#f4f4f4 1px, transparent 1px); background-size: 32px 32px;"></div>
+        <div class="max-w-[1584px] mx-auto px-8 relative z-10">
+            <div class="text-center mb-16 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">At a Glance</p>
+                <h2 class="text-3xl font-semibold mt-2">핵심 지표</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-carbon-border gsap-fade-up">
+                <div class="text-center p-10 bg-carbon-bg"><div class="text-4xl md:text-5xl font-bold text-white mb-2 counter" data-target="100">0</div><div class="text-xs text-carbon-textHelper font-mono uppercase tracking-[0.16em]">km 목표 고도</div><div class="w-8 h-[2px] bg-carbon-blue mx-auto mt-4"></div></div>
+                <div class="text-center p-10 bg-carbon-bg"><div class="text-4xl md:text-5xl font-bold text-white mb-2"><span class="counter" data-target="3">0</span>%</div><div class="text-xs text-carbon-textHelper font-mono uppercase tracking-[0.16em]">시뮬레이션 오차</div><div class="w-8 h-[2px] bg-carbon-blue mx-auto mt-4"></div></div>
+                <div class="text-center p-10 bg-carbon-bg"><div class="text-4xl md:text-5xl font-bold text-white mb-2 counter" data-target="1455">0</div><div class="text-xs text-carbon-textHelper font-mono uppercase tracking-[0.16em]">시뮬레이션 케이스</div><div class="w-8 h-[2px] bg-carbon-blue mx-auto mt-4"></div></div>
+                <div class="text-center p-10 bg-carbon-bg"><div class="text-4xl md:text-5xl font-bold text-white mb-2"><span class="counter" data-target="54">0</span>%</div><div class="text-xs text-carbon-textHelper font-mono uppercase tracking-[0.16em]">온도별 성능 변동폭</div><div class="w-8 h-[2px] bg-carbon-blue mx-auto mt-4"></div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MARKET & VISION -->
+    <section id="market" class="py-32 relative bg-carbon-bg border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="grid lg:grid-cols-12 gap-16">
+                <div class="lg:col-span-4 gsap-fade-up">
+                    <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Market Analysis</p>
+                    <h2 class="text-3xl md:text-5xl font-semibold mt-4 mb-6 leading-tight">왜 지금,<br>100km인가.</h2>
+                    <p class="text-carbon-textSecondary text-sm leading-relaxed mb-8">
+                        단순한 고고도 비행이 아닌, 고객의 장비가 <strong class="text-white">'우주 환경 검증'</strong>을 공식적으로 인증받기 위해서는 카르만 라인(100km) 도달이 필수적입니다.
+                    </p>
+                    <div class="mt-12 p-6 border border-carbon-border bg-carbon-layer1">
+                        <div class="text-xs text-carbon-textHelper font-mono mb-4">준궤도 비행 시장 전망 (단위: 억 달러)</div>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-4"><span class="text-sm font-medium w-12 text-carbon-textHelper">2024</span><div class="flex-grow bg-[#393939] h-2 overflow-hidden"><div class="bg-carbon-textHelper h-full w-[10%]"></div></div><span class="text-sm font-mono w-8 text-right">1.08</span></div>
+                            <div class="flex items-center gap-4"><span class="text-sm font-semibold w-12 text-white">2029</span><div class="flex-grow bg-[#393939] h-2 overflow-hidden"><div class="bg-carbon-blue h-full w-[85%]"></div></div><span class="text-sm font-mono text-carbon-blue font-semibold w-8 text-right">16.4</span></div>
+                        </div>
+                        <p class="text-[10px] text-carbon-textPlaceholder mt-4 text-right">Source: Research and Markets, 2025</p>
+                    </div>
+                </div>
+                <div class="lg:col-span-8 grid md:grid-cols-2 gap-px bg-carbon-border gsap-fade-up">
+                    <div class="p-8 bg-carbon-layer1 relative overflow-hidden"><h3 class="text-xl font-semibold mb-4">폭발적 수요 성장</h3><p class="text-carbon-textSecondary text-sm leading-relaxed">연평균 9.6% 성장하는 사운딩 로켓 시장. 우주 스타트업의 위성 부품 사전 테스트, 대학/연구소의 미소중력 실험, 대기과학 관측 등 실제 우주 환경을 요구하는 수요가 급증하고 있습니다.</p></div>
+                    <div class="p-8 bg-carbon-layer1"><h3 class="text-xl font-semibold mb-4">국내 시험 인프라 개방</h3><p class="text-carbon-textSecondary text-sm leading-relaxed">2026년 우주항공청 예산 1.1조 원 시대, 민간 산업 생태계 조성에 1,738억 원이 배정되었습니다. 민간 연소시험시설 구축 및 나로우주센터 민간 개방이 추진됩니다.</p></div>
+                    <div class="p-8 bg-carbon-layer1 md:col-span-2 flex flex-col md:flex-row items-center gap-8">
+                        <div class="w-full md:w-1/2">
+                            <h3 class="text-lg font-semibold mb-2 text-white">경쟁사 대비 절대적 우위</h3>
+                            <p class="text-carbon-textSecondary text-sm leading-relaxed mb-4">코스닥 상장사 이노스페이스가 '세빛(SEBIT)'으로 준궤도 시장 수요를 증명했습니다. 하지만 세빛의 타겟은 고도 50km입니다.</p>
+                            <div class="text-sm text-carbon-textSecondary space-y-2 border-l-2 border-carbon-border pl-4">
+                                <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-carbon-textHelper rounded-full"></div> 상장사 (SEBIT) : 고도 50km</div>
+                                <div class="flex items-center gap-2 font-semibold text-white"><div class="w-1.5 h-1.5 bg-carbon-blue rounded-full"></div> TUSI 하이브리드 : 고도 100km (우주 인증 조건 달성)</div>
+                                <div class="flex items-center gap-2"><div class="w-1.5 h-1.5 bg-carbon-textHelper rounded-full"></div> 국내 100km 구간 발사 서비스 독점적 지위</div>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-1/2 bg-carbon-bg border border-carbon-border p-6 relative overflow-hidden">
+                            <div class="text-xs text-carbon-blue mb-2 font-mono">TUSI's Core Strategy</div>
+                            <div class="font-semibold text-lg mb-2">온도별 맞춤 운용 시스템</div>
+                            <p class="text-xs text-carbon-textHelper">계절(온도)에 따라 산화제 성능이 최대 54% 변동합니다. TUSI는 무거운 히팅 장비 대신 하이브리드 로켓의 모듈화 장점을 활용해 <strong class="text-carbon-textSecondary">계절별 인젝터 및 그레인 스왑, 가압제 양 조정 가이드라인</strong>을 확립하여 하드웨어 추가 없이 획기적인 단가 절감을 이뤘습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TARGET CUSTOMERS -->
+    <section class="py-32 bg-carbon-bg border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-16 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Target Customers</p>
+                <h2 class="text-3xl md:text-5xl font-semibold mt-2 mb-4">누가 100km를 필요로 하는가</h2>
+                <p class="text-carbon-textSecondary text-sm max-w-2xl mx-auto">TUSI의 준궤도 발사 서비스는 아래의 고객 그룹에게 기존 대비 획기적으로 낮은 비용과 빠른 일정으로 진짜 우주 환경 접근을 제공합니다.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-px bg-carbon-border gsap-fade-up">
+                <div class="customer-card p-8 bg-carbon-layer1">
+                    <div class="w-12 h-12 bg-carbon-blue/10 border border-carbon-blue/20 flex items-center justify-center mb-6"><svg class="w-6 h-6 text-carbon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+                    <h3 class="text-lg font-semibold mb-3">우주 스타트업 & 부품사</h3>
+                    <p class="text-carbon-textHelper text-sm leading-relaxed mb-4">위성 컴포넌트(반응휠, 태양전지, 통신모듈 등)의 TRL-7 수준 우주 환경 검증이 필요한 기업.</p>
+                    <div class="flex flex-wrap gap-2"><span class="carbon-tag bg-carbon-blue/10 text-carbon-blue font-mono">TRL 검증</span><span class="carbon-tag bg-carbon-blue/10 text-carbon-blue font-mono">우주 헤리티지</span></div>
+                </div>
+                <div class="customer-card p-8 bg-carbon-layer1">
+                    <div class="w-12 h-12 bg-carbon-cyan/10 border border-carbon-cyan/20 flex items-center justify-center mb-6"><svg class="w-6 h-6 text-carbon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 2h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 8.172V3L8 2z"/></svg></div>
+                    <h3 class="text-lg font-semibold mb-3">대학 & 정부 연구기관</h3>
+                    <p class="text-carbon-textHelper text-sm leading-relaxed mb-4">미소중력(μg) 실험, 고층 대기 샘플링, 우주방사선 측정 등 학술 연구용 페이로드 수송.</p>
+                    <div class="flex flex-wrap gap-2"><span class="carbon-tag bg-carbon-cyan/10 text-carbon-cyan font-mono">미소중력 실험</span><span class="carbon-tag bg-carbon-cyan/10 text-carbon-cyan font-mono">대기과학</span></div>
+                </div>
+                <div class="customer-card p-8 bg-carbon-layer1">
+                    <div class="w-12 h-12 bg-carbon-green/10 border border-carbon-green/20 flex items-center justify-center mb-6"><svg class="w-6 h-6 text-carbon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                    <h3 class="text-lg font-semibold mb-3">기상 & 환경 기관</h3>
+                    <p class="text-carbon-textHelper text-sm leading-relaxed mb-4">기상청, 환경부 등 정부기관의 고고도 기상관측, 인공강우 실험, 산림복원 드롭시딩 등 친환경 미션.</p>
+                    <div class="flex flex-wrap gap-2"><span class="carbon-tag bg-carbon-green/10 text-carbon-green font-mono">기상관측</span><span class="carbon-tag bg-carbon-green/10 text-carbon-green font-mono">친환경</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STRATEGY: LAUNCH SITE & ROADMAP -->
+    <section class="py-32 relative bg-carbon-layer1 border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div class="gsap-fade-up">
+                    <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Execution Strategy</p>
+                    <h2 class="text-3xl md:text-5xl font-semibold mt-4 mb-6 leading-tight">단계적 규제 돌파 및<br>발사장 확보 전략</h2>
+                    <p class="text-carbon-textSecondary text-sm leading-relaxed mb-10">우주개발 진흥법 제11조에 따른 정식 발사 허가는 최종 관문입니다. TUSI는 무리한 초기 허가 대신 규제 그레이존과 국가 인프라를 지렛대 삼아 체계적으로 단계를 밟아갑니다.</p>
+                    <div class="space-y-6 border-l-2 border-carbon-border pl-6">
+                        <div class="relative"><div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-carbon-layer2 border-2 border-carbon-textHelper"></div><div class="text-xs text-carbon-blue font-mono mb-1">현재 ~ 2027</div><h4 class="font-semibold text-white mb-1">엔진 정적 연소시험 (허가 불필요)</h4><p class="text-xs text-carbon-textHelper">발사가 아니므로 허가가 불필요합니다. 대학 시설 및 우주항공청이 구축 중인 민간 연소시험시설을 적극 활용하여 3~5kN 스케일업을 완료합니다.</p></div>
+                        <div class="relative"><div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-carbon-layer2 border-2 border-carbon-textHelper"></div><div class="text-xs text-carbon-blue font-mono mb-1">2027 ~ 2028</div><h4 class="font-semibold text-white mb-1">수 km급 저고도 비행시험</h4><p class="text-xs text-carbon-textHelper">우주항공청의 100km 미만 발사체용 '사전신고·예비평가 제도'를 활용. 인허가 허들을 대폭 낮추고 시스템 통합 및 회수 기술을 실증합니다.</p></div>
+                        <div class="relative"><div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-carbon-blue border-2 border-carbon-blue"></div><div class="text-xs text-carbon-blue font-mono mb-1">2028 ~</div><h4 class="font-semibold text-white mb-1">카르만 라인 정식 상업 발사</h4><p class="text-xs text-carbon-textHelper">정식 발사허가 신청 완료. 나로우주센터 민간 개방 인프라 및 제주 우주항공 클러스터를 연계하여 본격적인 상업 서비스를 개시합니다.</p></div>
+                    </div>
+                </div>
+                <div class="relative h-[600px] border border-carbon-border bg-carbon-bg overflow-hidden flex items-center justify-center gsap-fade-up">
+                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#525252 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    <div class="relative w-full max-w-[400px] h-full flex items-center justify-center">
+                        <img src="한반도.png" alt="South Korea Map">
+                        <div class="absolute top-[82%] left-[51%] flex items-center gap-3"><div class="relative w-3.5 h-3.5 bg-carbon-blue rounded-full radar-node z-10"></div><div class="bg-[#161616]/90 border border-carbon-border px-3 py-1 text-[10px] font-mono text-white backdrop-blur whitespace-nowrap">나로우주센터 (전남 고흥)<br><span class="text-carbon-textHelper">민간 발사장 개방 인프라</span></div></div>
+                        <div class="absolute top-[92%] left-[1%] flex items-center flex-row-reverse gap-3"><div class="relative w-3.5 h-3.5 bg-carbon-cyan rounded-full radar-node z-10"></div><div class="bg-[#161616]/90 border border-carbon-cyan/30 px-3 py-1 text-[10px] font-mono text-white backdrop-blur whitespace-nowrap text-right">제주 우주항공 클러스터<br><span class="text-carbon-cyan">해상 발사 연계 검토</span></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONOPS PARABOLIC TRAJECTORY -->
+    <section id="conops" class="py-32 relative bg-carbon-bg border-carbon-top overflow-hidden">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-16 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Mission Profile</p>
+                <h2 class="text-4xl font-semibold mt-2">발사 운용 시퀀스 (CONOPS)</h2>
+                <p class="text-carbon-textSecondary mt-4 text-sm max-w-2xl mx-auto">N₂O는 폭발 위험이 낮고 자체 점화가 불가능해 안전합니다. 산화제 유량 조절을 통한 추력 제어와 긴급정지, 그리고 완벽한 동체 회수까지 TUSI의 비행 궤적을 확인하십시오. (스크롤하여 진행)</p>
+            </div>
+
+            <!-- Parabolic Trajectory Container -->
+            <div class="relative conops-container" style="height: 1200px;">
+                <!-- SVG Trajectory Path -->
+                <svg id="conops-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid meet" style="top: 50%; transform: translateY(-50%); max-height: 500px;">
+                    <!-- Grid -->
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#262626" stroke-width="0.5"/></pattern>
+                    </defs>
+                    <rect width="1200" height="500" fill="url(#grid)" opacity="0.5"/>
+                    
+                    <!-- Ground line -->
+                    <line x1="0" y1="440" x2="1200" y2="440" stroke="#393939" stroke-width="1" stroke-dasharray="4,4"/>
+                    <text x="20" y="460" fill="#6f6f6f" font-size="10" font-family="IBM Plex Mono">GROUND LEVEL</text>
+                    
+                    <!-- Altitude labels -->
+                    <text x="20" y="90" fill="#6f6f6f" font-size="10" font-family="IBM Plex Mono">100 km ─ KARMAN LINE</text>
+                    <line x1="0" y1="80" x2="1200" y2="80" stroke="#0f62fe" stroke-width="0.5" stroke-dasharray="8,4" opacity="0.3"/>
+
+                    <!-- Background trajectory path (dark) -->
+                    <path id="trajectory-bg" d="M 100 430 Q 200 430, 300 300 Q 400 170, 500 90 Q 600 40, 650 60 Q 700 80, 800 200 Q 900 350, 1000 410 Q 1050 430, 1100 435" fill="none" stroke="#393939" stroke-width="2"/>
+                    
+                    <!-- Progress trajectory path (blue, animated) -->
+                    <path id="trajectory-progress" d="M 100 430 Q 200 430, 300 300 Q 400 170, 500 90 Q 600 40, 650 60 Q 700 80, 800 200 Q 900 350, 1000 410 Q 1050 430, 1100 435" fill="none" stroke="#0f62fe" stroke-width="2.5" stroke-dasharray="2000" stroke-dashoffset="2000" filter="drop-shadow(0 0 6px rgba(15,98,254,0.5))"/>
+
+                    <!-- Milestone markers positioned along the curve -->
+                    <!-- T-0 -->
+                    <g class="conops-milestone" data-progress="0">
+                        <circle cx="100" cy="430" r="6" fill="#262626" stroke="#525252" stroke-width="2" class="conops-node" data-pos="0"/>
+                        <line x1="100" y1="415" x2="100" y2="370" stroke="#393939" stroke-width="1"/>
+                        <text x="100" y="365" fill="#f4f4f4" font-size="13" font-weight="600" font-family="IBM Plex Sans" text-anchor="middle">Ignition</text>
+                        <text x="100" y="350" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">T-0</text>
+                    </g>
+                    
+                    <!-- Max Q -->
+                    <g class="conops-milestone" data-progress="20">
+                        <circle cx="300" cy="300" r="6" fill="#262626" stroke="#525252" stroke-width="2" class="conops-node" data-pos="20"/>
+                        <line x1="300" y1="315" x2="300" y2="360" stroke="#393939" stroke-width="1"/>
+                        <text x="300" y="378" fill="#f4f4f4" font-size="13" font-weight="600" font-family="IBM Plex Sans" text-anchor="middle">Max Q</text>
+                        <text x="300" y="393" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">최대 동압</text>
+                    </g>
+
+                    <!-- MECO -->
+                    <g class="conops-milestone" data-progress="38">
+                        <circle cx="460" cy="130" r="6" fill="#262626" stroke="#525252" stroke-width="2" class="conops-node" data-pos="38"/>
+                        <line x1="460" y1="145" x2="460" y2="190" stroke="#393939" stroke-width="1"/>
+                        <text x="460" y="208" fill="#f4f4f4" font-size="13" font-weight="600" font-family="IBM Plex Sans" text-anchor="middle">MECO</text>
+                        <text x="460" y="223" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">엔진 컷오프 t≈30s</text>
+                    </g>
+
+                    <!-- Apogee 100km -->
+                    <g class="conops-milestone" data-progress="50">
+                        <circle cx="620" cy="50" r="8" fill="#262626" stroke="#0f62fe" stroke-width="3" class="conops-node" data-pos="50"/>
+                        <line x1="620" y1="35" x2="620" y2="10" stroke="#0f62fe" stroke-width="1"/>
+                        <rect x="555" y="0" width="130" height="18" rx="0" fill="#0f62fe"/>
+                        <text x="620" y="13" fill="white" font-size="11" font-weight="600" font-family="IBM Plex Mono" text-anchor="middle">PAYLOAD DEPLOY</text>
+                        <text x="620" y="70" fill="#f4f4f4" font-size="14" font-weight="700" font-family="IBM Plex Sans" text-anchor="middle">100km Apogee</text>
+                    </g>
+
+                    <!-- Drogue Chute -->
+                    <g class="conops-milestone" data-progress="68">
+                        <circle cx="800" cy="200" r="6" fill="#262626" stroke="#525252" stroke-width="2" class="conops-node" data-pos="68"/>
+                        <line x1="800" y1="185" x2="800" y2="150" stroke="#393939" stroke-width="1"/>
+                        <text x="800" y="142" fill="#f4f4f4" font-size="13" font-weight="600" font-family="IBM Plex Sans" text-anchor="middle">Drogue Chute</text>
+                        <text x="800" y="127" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">감속 낙하산 전개</text>
+                    </g>
+
+                    <!-- Main Chute -->
+                    <g class="conops-milestone" data-progress="85">
+                        <circle cx="960" cy="380" r="6" fill="#262626" stroke="#525252" stroke-width="2" class="conops-node" data-pos="85"/>
+                        <line x1="960" y1="365" x2="960" y2="330" stroke="#393939" stroke-width="1"/>
+                        <text x="960" y="322" fill="#f4f4f4" font-size="13" font-weight="600" font-family="IBM Plex Sans" text-anchor="middle">Main Chute</text>
+                        <text x="960" y="307" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">주 낙하산 전개</text>
+                    </g>
+
+                    <!-- Touchdown -->
+                    <g class="conops-milestone" data-progress="100">
+                        <circle cx="1100" cy="435" r="6" fill="#262626" stroke="#42be65" stroke-width="2" class="conops-node" data-pos="100"/>
+                        <line x1="1100" y1="420" x2="1100" y2="385" stroke="#393939" stroke-width="1"/>
+                        <text x="1100" y="377" fill="#42be65" font-size="13" font-weight="600" font-family="IBM Plex Sans" text-anchor="middle">Touchdown</text>
+                        <text x="1100" y="362" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">동체 회수 완료</text>
+                    </g>
+
+                    <!-- Rocket -->
+                    <g id="conops-rocket-g" transform="translate(100, 430)">
+                        <!-- Flame -->
+                        <g id="conops-flame-g" opacity="0">
+                            <ellipse cx="0" cy="16" rx="3" ry="10" fill="#ff832b" opacity="0.8" filter="blur(2px)"/>
+                            <ellipse cx="0" cy="14" rx="2" ry="6" fill="#f4f4f4" opacity="0.6"/>
+                        </g>
+                        <!-- Rocket body -->
+                        <g id="conops-rocket-body">
+                            <path d="M0 -18 C0 -18, -5 -10, -5 0 L-5 10 L-8 16 L8 16 L5 10 L5 0 C5 -10, 0 -18, 0 -18Z" fill="#f4f4f4" stroke="#c6c6c6" stroke-width="0.5"/>
+                            <circle cx="0" cy="-5" r="2" fill="#0f62fe"/>
+                        </g>
+                        <!-- Parachute (hidden initially) -->
+                        <g id="conops-chute" opacity="0" transform="translate(0, -30)">
+                            <path d="M-20 -10 Q0 -30, 20 -10 L5 0 L-5 0 Z" fill="none" stroke="#42be65" stroke-width="1.5"/>
+                            <line x1="-12" y1="-8" x2="-3" y2="10" stroke="#42be65" stroke-width="0.8"/>
+                            <line x1="12" y1="-8" x2="3" y2="10" stroke="#42be65" stroke-width="0.8"/>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+            
+            <div class="text-center mt-4">
+                <p class="text-xs text-carbon-textPlaceholder font-mono">* 스크롤하여 미션 시퀀스 진행 | 도달 직후 능동 자세 제어 및 낙하산 사출로 동체 회수</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SAFETY & ADVANTAGES -->
+    <section class="py-28 bg-carbon-layer1 border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-16 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Why Hybrid?</p>
+                <h2 class="text-3xl md:text-5xl font-semibold mt-2 mb-4">하이브리드 로켓의 안전성과 이점</h2>
+                <p class="text-carbon-textSecondary text-sm max-w-2xl mx-auto">N₂O/HDPE 하이브리드 추진 체계는 고체와 액체 로켓의 장점을 결합하면서 양쪽의 단점을 최소화한 차세대 추진 방식입니다.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-carbon-border gsap-fade-up">
+                <div class="p-8 bg-carbon-bg text-center"><div class="w-10 h-10 mx-auto mb-4 bg-carbon-green/10 flex items-center justify-center"><svg class="w-5 h-5 text-carbon-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div><h4 class="font-semibold text-white mb-2 text-sm">폭발 위험 최소</h4><p class="text-xs text-carbon-textHelper leading-relaxed">산화제와 연료가 물리적으로 분리되어 자체 폭발이 원천적으로 불가능합니다.</p></div>
+                <div class="p-8 bg-carbon-bg text-center"><div class="w-10 h-10 mx-auto mb-4 bg-carbon-blue/10 flex items-center justify-center"><svg class="w-5 h-5 text-carbon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div><h4 class="font-semibold text-white mb-2 text-sm">추력 제어 가능</h4><p class="text-xs text-carbon-textHelper leading-relaxed">산화제 유량 조절을 통해 실시간 추력 조절 및 긴급 정지(abort)가 가능합니다.</p></div>
+                <div class="p-8 bg-carbon-bg text-center"><div class="w-10 h-10 mx-auto mb-4 bg-carbon-purple/10 flex items-center justify-center"><svg class="w-5 h-5 text-carbon-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div><h4 class="font-semibold text-white mb-2 text-sm">모듈형 교체</h4><p class="text-xs text-carbon-textHelper leading-relaxed">그레인과 인젝터를 현장에서 교체 가능. 계절별 최적화로 연중 운용 보장합니다.</p></div>
+                <div class="p-8 bg-carbon-bg text-center"><div class="w-10 h-10 mx-auto mb-4 bg-carbon-orange/10 flex items-center justify-center"><svg class="w-5 h-5 text-carbon-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h4 class="font-semibold text-white mb-2 text-sm">원가 절감</h4><p class="text-xs text-carbon-textHelper leading-relaxed">HDPE는 저가 범용 소재. 복잡한 극저온 시스템 불필요로 발사 단가를 혁신합니다.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CORE TECH: SIMULATION -->
+    <section id="tech" class="py-32 bg-carbon-bg border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-24 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Core Tech 01</p>
+                <h2 class="text-4xl font-semibold mt-2 mb-6">자체 개발 웹 기반 하이브리드 엔진 시뮬레이터</h2>
+                <p class="text-carbon-textSecondary text-sm max-w-3xl mx-auto">수만 번의 핫파이어 테스트를 가상 공간에서 완벽히 구현합니다. 복잡한 물리현상을 모델링하고, 다중 파라미터를 병렬 연산하여 고객의 페이로드와 목표 고도에 최적화된 맞춤형 엔진 스펙을 수 시간 내에 설계합니다.</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-12 items-center justify-center mb-40 gsap-fade-up">
+                <div class="relative w-full lg:w-3/5 flex justify-center items-end">
+                    <div class="w-full max-w-[600px] aspect-[16/10] border border-carbon-border bg-carbon-bg overflow-hidden relative shadow-2xl">
+                        <div class="h-8 bg-carbon-layer1 w-full flex items-center px-4 gap-2 border-b border-carbon-border">
+                            <div class="w-3 h-3 rounded-full bg-carbon-red"></div><div class="w-3 h-3 rounded-full bg-[#f1c21b]"></div><div class="w-3 h-3 rounded-full bg-carbon-green"></div>
+                            <span class="text-[10px] text-carbon-textHelper font-mono ml-3">TAS-I Simulator v2.0</span>
+                        </div>
+                        <img src="screen.jpg" class="w-full h-full object-cover" alt="시뮬레이션 데스크톱 UI">
+                    </div>
+                    <div class="absolute -bottom-6 -right-2 md:-right-8 w-[220px] md:w-[280px] aspect-[4/3] border border-carbon-border bg-carbon-layer1 overflow-hidden shadow-2xl z-10">
+                        <img src="screen32.jpg" class="w-full h-full object-cover" alt="태블릿 모니터링 UI">
+                    </div>
+                </div>
+                <div class="w-full lg:w-2/5 flex flex-col gap-4">
+                    <div class="aspect-video bg-carbon-layer1 border border-carbon-border overflow-hidden relative video-crop-container">
+                        <video src="final122.mp4" autoplay muted loop playsinline></video>
+                    </div>
+                    <div class="p-5 bg-carbon-layer1 border border-carbon-border">
+                        <h4 class="font-semibold text-white mb-2 text-sm">다중 변수 클라우드 병렬 연산</h4>
+                        <p class="text-xs text-carbon-textHelper leading-relaxed">직관적인 웹 UI를 통해 수십 개의 JSON 파라미터(산화제 유량, 인젝터 형상 등)를 한 번에 입력하고, 서버에서 병렬로 해석하여 최적의 엔진 스펙을 즉시 도출합니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIM FEATURES -->
+            <div class="space-y-32">
+                <div class="grid md:grid-cols-2 gap-16 items-center gsap-fade-up">
+                    <div><h3 class="text-2xl font-semibold mb-4">01. 산화제 탱크 블로우다운 및 슈퍼차징 해석</h3><p class="text-carbon-textSecondary leading-relaxed mb-6 text-sm">엔진 연소 시 산화제(N₂O)가 배출되며 탱크 내 압력과 온도가 급감하는 블로우다운 현상을 정밀하게 모사합니다. 또한 헬륨(He) 등 가압제를 활용한 슈퍼차징을 모델링하여 비행 내내 일정한 추력을 유지하기 위한 최적의 가압 조건을 도출합니다.</p><div class="text-xs text-carbon-textHelper font-mono bg-carbon-layer1 p-4 border-l-2 border-carbon-blue">> Parameter: Initial Tank Pressure, He Mass, Ullage Volume</div></div>
+                    <div class="h-64 border border-carbon-border bg-carbon-layer1 relative flex items-center justify-center overflow-hidden"><div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#393939 1px, transparent 1px), linear-gradient(90deg, #393939 1px, transparent 1px); background-size: 10px 10px;"></div><svg viewBox="0 0 200 200" class="w-48 h-48 z-10"><rect x="60" y="20" width="80" height="160" rx="40" fill="none" stroke="#525252" stroke-width="4"/><clipPath id="tankMask"><rect x="62" y="22" width="76" height="156" rx="38"/></clipPath><g clip-path="url(#tankMask)"><rect x="60" y="20" width="80" height="160" class="svg-liquid" fill="#0f62fe"/><rect x="60" y="20" width="80" height="160" class="svg-gas" fill="rgba(255,255,255,0.15)"/></g><circle cx="160" cy="100" r="25" fill="#262626" stroke="#525252" stroke-width="2"/><path d="M140,100 A20,20 0 0,1 180,100" fill="none" stroke="#393939" stroke-width="4"/><path d="M145,95 A15,15 0 0,1 175,95" fill="none" stroke="#0f62fe" stroke-width="2"/><line x1="160" y1="100" x2="145" y2="85" stroke="#f4f4f4" stroke-width="2" class="svg-gauge-needle" stroke-linecap="round"/><circle cx="160" cy="100" r="3" fill="#f4f4f4"/><text x="100" y="100" fill="white" font-size="12" font-family="IBM Plex Mono" font-weight="600" text-anchor="middle">N₂O</text><text x="160" y="140" fill="#8d8d8d" font-size="8" font-family="IBM Plex Mono" text-anchor="middle">PRESSURE</text></svg></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-16 items-center gsap-fade-up">
+                    <div class="order-2 md:order-1 h-64 border border-carbon-border bg-carbon-layer1 relative flex items-center justify-center overflow-hidden"><div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#393939 1px, transparent 1px), linear-gradient(90deg, #393939 1px, transparent 1px); background-size: 10px 10px;"></div><svg viewBox="0 0 300 150" class="w-full h-full z-10 px-8"><path d="M0,35 L120,35 L120,60" fill="none" stroke="#525252" stroke-width="4"/><path d="M0,115 L120,115 L120,90" fill="none" stroke="#525252" stroke-width="4"/><rect x="120" y="15" width="30" height="45" fill="#393939" stroke="#525252" stroke-width="2"/><rect x="120" y="90" width="30" height="45" fill="#393939" stroke="#525252" stroke-width="2"/><text x="10" y="25" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono">Liquid N₂O</text><text x="140" y="13" fill="#0f62fe" font-size="10" font-family="IBM Plex Mono">Cavitation / 2-Phase</text><g><circle cx="10" cy="75" r="4" fill="#0f62fe" class="flow-p1"/><circle cx="10" cy="75" r="3" fill="#4589ff" class="flow-p2"/><circle cx="10" cy="75" r="5" fill="#0043ce" class="flow-p3"/><circle cx="10" cy="75" r="2" fill="#f4f4f4" class="flow-p4"/></g></svg></div>
+                    <div class="order-1 md:order-2"><h3 class="text-2xl font-semibold mb-4">02. NHNE 2상 유동 (Two-Phase Flow)</h3><p class="text-carbon-textSecondary leading-relaxed mb-6 text-sm">비균질 비평형(Non-Homogeneous Non-Equilibrium) 모델을 적용하여, 인젝터를 통과하는 액체와 기체 혼합물의 복잡한 유체 역학을 해석합니다. 압력 강하에 따른 N₂O 특유의 상변화(캐비테이션)와 유량 역전 현상을 정확히 예측합니다.</p></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-16 items-center gsap-fade-up">
+                    <div><h3 class="text-2xl font-semibold mb-4">03. 레벨셋 Burn-back 및 화학평형 연동</h3><p class="text-carbon-textSecondary leading-relaxed mb-6 text-sm">시간이 지남에 따라 변하는 고체 연료(HDPE)의 내부 형상을 레벨셋(Level-set) 기법으로 추적합니다. 실시간 연소 면적 변화를 계산하고, CoolProp 및 NASA CEA 알고리즘과 연동하여 화학적 열역학 특성을 정확히 산출합니다.</p></div>
+                    <div class="h-64 border border-carbon-border bg-carbon-layer1 relative flex items-center justify-center overflow-hidden"><div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#393939 1px, transparent 1px), linear-gradient(90deg, #393939 1px, transparent 1px); background-size: 10px 10px;"></div><svg viewBox="0 0 200 200" class="w-48 h-48 z-10"><circle cx="100" cy="100" r="90" fill="none" stroke="#525252" stroke-width="4"/><circle cx="100" cy="100" r="86" fill="#262626" stroke="none"/><circle cx="100" cy="100" r="20" fill="none" stroke="#ff832b" stroke-width="2" class="svg-burn-core"/><line x1="10" y1="100" x2="190" y2="100" stroke="#f4f4f4" stroke-width="0.5" stroke-opacity="0.15"/><line x1="100" y1="10" x2="100" y2="190" stroke="#f4f4f4" stroke-width="0.5" stroke-opacity="0.15"/><text x="100" y="195" fill="#8d8d8d" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">CROSS-SECTION RECESSION</text></svg></div>
+                </div>
+            </div>
+
+            <!-- Validation Graphs -->
+            <div class="mt-32 pt-24 border-t border-carbon-border gsap-fade-up">
+                <div class="flex flex-col md:flex-row justify-between items-end mb-12">
+                    <div><h3 class="text-2xl font-semibold mb-2">실제 연소시험(Hot-fire) 교차 검증 완료</h3><p class="text-carbon-textSecondary text-sm">TAS-I 시뮬레이션 예측값과 N₂O/HDPE 500N급 연소시험 실측 데이터(0.05~2.2s 구간)를 비교 분석하여 신뢰성을 확보했습니다.</p></div>
+                    <div class="px-4 py-2 bg-carbon-blue text-white font-mono text-xs mt-4 md:mt-0">ERROR RATE &lt; 3%</div>
+                </div>
+                <div class="grid lg:grid-cols-1 gap-4">
+                    <div class="bg-carbon-layer1 border border-carbon-border p-4"><canvas id="chart-tank"></canvas></div>
+                    <div class="bg-carbon-layer1 border border-carbon-border p-4"><canvas id="chart-chamber"></canvas></div>
+                    <div class="bg-carbon-layer1 border border-carbon-border p-4"><canvas id="chart-thrust"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CORE TECH 2: HARDWARE -->
+    <section class="py-32 bg-carbon-layer1 border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="mb-16 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Core Tech 02</p>
+                <h2 class="text-4xl font-semibold mt-2">1kN급 연소 챔버 설계 및 에비오닉스</h2>
+                <p class="text-carbon-textSecondary mt-4 max-w-2xl text-sm">소프트웨어를 넘어선 하드웨어 제조 역량. 연소시간 12초 정적 연소시험용 1kN 엔진 CAD 설계를 완료했으며, 비행 제어 및 회수 시스템을 자체 제작했습니다.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-px bg-carbon-border gsap-fade-up">
+                <div class="bg-carbon-bg aspect-video relative overflow-hidden flex items-center justify-center"><img src="1kN.PNG" class="w-full h-full object-contain" alt="1kN 엔진 CAD 렌더링"></div>
+                <div class="bg-carbon-bg aspect-video relative overflow-hidden flex items-center justify-center"><video src="onshape22.mp4" class="w-full h-full object-contain" autoplay muted loop playsinline></video></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BUSINESS EXPANSION -->
+    <section class="py-32 bg-carbon-bg border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-16 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Future Strategy</p>
+                <h2 class="text-3xl md:text-5xl font-semibold mt-2 mb-6">사업 확장 로드맵 및 융합 서비스</h2>
+                <p class="text-carbon-textSecondary text-sm max-w-2xl mx-auto">안정적인 100km 수송 능력을 확보한 이후, TUSI는 단순 발사 대행을 넘어 B2B 컨설팅 및 지구 환경 개선, 에듀테크를 아우르는 융합 우주 서비스 기업으로 도약합니다.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-carbon-border gsap-fade-up">
+                <div class="expansion-card p-8 bg-carbon-layer1 cursor-pointer hover:bg-carbon-layer2 transition-colors"><div class="mb-6"><svg class="icon-glow text-carbon-blue w-8 h-8 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></div><div class="text-carbon-blue font-mono text-xs mb-2 tracking-[0.16em]">Phase 1: CORE</div><h3 class="text-base font-semibold text-white mb-3 pb-3 border-b border-carbon-border">페이로드 발사 서비스</h3><p class="text-carbon-textHelper text-xs leading-relaxed">주요 메인 캐시카우. 스타트업의 우주 부품 환경 검증, 대학 연구소의 미소중력 실험을 위한 단독 및 쉐어드 페이로드 발사.</p></div>
+                <div class="expansion-card p-8 bg-carbon-layer1 cursor-pointer hover:bg-carbon-layer2 transition-colors"><div class="mb-6"><svg class="icon-glow text-carbon-textSecondary w-8 h-8 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div><div class="text-carbon-textHelper font-mono text-xs mb-2 tracking-[0.16em]">Phase 2: DATA</div><h3 class="text-base font-semibold text-white mb-3 pb-3 border-b border-carbon-border">비행 분석 리포트 & 컨설팅</h3><p class="text-carbon-textHelper text-xs leading-relaxed">궤적, 가속도, 진동 등 극한 환경의 정밀 텔레메트리 데이터를 인증 리포트화 및 자체 시뮬레이터 연계 맞춤형 엔진 설계 용역(B2B).</p></div>
+                <div class="expansion-card p-8 bg-carbon-layer1 cursor-pointer hover:bg-carbon-layer2 transition-colors"><div class="mb-6"><svg class="icon-glow text-carbon-green w-8 h-8 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="text-carbon-green font-mono text-xs mb-2 tracking-[0.16em]">Phase 3: ECO-TECH</div><h3 class="text-base font-semibold text-white mb-3 pb-3 border-b border-carbon-border">친환경 기상/산림 모듈</h3><p class="text-carbon-textHelper text-xs leading-relaxed">접근 불가 지역 산림 복원을 위한 고고도 드롭 시딩 기술 접목 및 국지적 기상 조절(인공강우 등) 모듈 발사 실험 지원.</p></div>
+                <div class="expansion-card p-8 bg-carbon-layer1 cursor-pointer hover:bg-carbon-layer2 transition-colors"><div class="mb-6"><svg class="icon-glow text-carbon-purple w-8 h-8 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></div><div class="text-carbon-purple font-mono text-xs mb-2 tracking-[0.16em]">Phase 4: MEDIA & EDU</div><h3 class="text-base font-semibold text-white mb-3 pb-3 border-b border-carbon-border">우주 미디어 & 에듀테크</h3><p class="text-carbon-textHelper text-xs leading-relaxed">카르만 라인 뷰 온보드 캠 영상의 상업적 미디어 라이센싱 및 400m급 저고도 교육용 사운딩 로켓 캠프 운영으로 대중화 기여.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- R&D HERITAGE -->
+    <section id="heritage" class="py-32 bg-carbon-layer1 border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-24 gsap-fade-up">
+                <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Our Heritage</p>
+                <h2 class="text-4xl font-semibold mt-2 mb-6">검증된 개발 역량과 발사 기록</h2>
+                <p class="text-carbon-textSecondary text-sm max-w-2xl mx-auto">TUSI는 단순한 이론적 설계에 머물지 않습니다. 자체 고체 모터 제작부터 지상국 구축, 그리고 실제 비행 시험까지 발사체 체계 종합의 전 과정을 독자적으로 완수해왔습니다.</p>
+            </div>
+            <div class="space-y-32">
+                <div class="grid md:grid-cols-2 gap-px bg-carbon-border items-stretch gsap-fade-up">
+                    <div class="bg-carbon-bg aspect-video relative overflow-hidden flex items-center justify-center"><video src="3.mp4" class="w-full h-full object-contain" autoplay muted loop playsinline></video></div>
+                    <div class="bg-carbon-bg p-10 flex flex-col justify-center"><div class="text-xs text-carbon-blue font-mono mb-2 tracking-[0.16em]">PHASE 01</div><h3 class="text-2xl font-semibold mb-4">고체 연료 엔진 제작 및 TMS 구축</h3><p class="text-carbon-textSecondary text-sm leading-relaxed">500N급 고체 로켓 모터를 독자적으로 설계 및 제작하여 성공적인 연소 시험을 수행했습니다. 특히, 엔진의 성능을 정확히 측정하기 위해 <strong class="text-white">추력 측정 시스템(TMS)을 자체 구축</strong>했습니다.</p></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-px bg-carbon-border items-stretch gsap-fade-up">
+                    <div class="bg-carbon-bg p-10 flex flex-col justify-center order-2 md:order-1"><div class="text-xs text-carbon-blue font-mono mb-2 tracking-[0.16em]">PHASE 02</div><h3 class="text-2xl font-semibold mb-4">자체 비행 제어 에비오닉스 개발</h3><p class="text-carbon-textSecondary text-sm leading-relaxed">비행 제어 컴퓨터를 자체 설계한 PCB 기반으로 제작. 6축 IMU, 기압 고도계, GPS 등을 실시간 센서 퓨전으로 처리합니다. <strong class="text-white">정확한 정점(Apogee) 감지를 통한 낙하산 사출 제어</strong>를 구현했습니다.</p></div>
+                    <div class="bg-carbon-bg aspect-video relative overflow-hidden flex items-center justify-center order-1 md:order-2"><img src="avi.jpg" class="w-full h-full object-contain" alt="에비오닉스 보드"></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-px bg-carbon-border items-stretch gsap-fade-up">
+                    <div class="bg-carbon-bg aspect-video relative overflow-hidden flex items-center justify-center"><img src="gcs.jpg" class="w-full h-full object-contain" alt="지상국 GCS UI"></div>
+                    <div class="bg-carbon-bg p-10 flex flex-col justify-center"><div class="text-xs text-carbon-blue font-mono mb-2 tracking-[0.16em]">PHASE 03</div><h3 class="text-2xl font-semibold mb-4">통합 지상국(GCS) 구축 및 통신</h3><p class="text-carbon-textSecondary text-sm leading-relaxed">비행 중인 발사체와 양방향으로 소통하는 <strong class="text-white">지상통제소 소프트웨어와 하드웨어 안테나 시스템</strong>을 구축했습니다. 텔레메트리를 실시간 시각화하며, 비상 시 원격 커맨드를 전송할 수 있는 무선 통신 인프라를 완성했습니다.</p></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-px bg-carbon-border items-stretch gsap-fade-up">
+                    <div class="bg-carbon-bg p-10 flex flex-col justify-center order-2 md:order-1"><div class="text-xs text-carbon-blue font-mono mb-2 tracking-[0.16em]">PHASE 04</div><h3 class="text-2xl font-semibold mb-4">실제 비행 시험 및 성공적 회수</h3><p class="text-carbon-textSecondary text-sm leading-relaxed">추진체, 구조체, 에비오닉스를 하나의 로켓으로 통합하여 <strong class="text-white">실제 야외 비행 시험을 수행</strong>했습니다. 최고점에서 정확히 분리 메커니즘이 작동하여 낙하산을 통해 기체를 파손 없이 회수하는 데 성공했습니다.</p></div>
+                    <div class="bg-carbon-bg aspect-video relative overflow-hidden flex items-center justify-center order-1 md:order-2"><video src="4.mp4" class="w-full h-full object-contain" autoplay muted loop playsinline></video></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FULL-WIDTH VIDEO -->
+    <section class="relative bg-carbon-bg border-carbon-top overflow-hidden">
+        <div class="max-w-[1584px] mx-auto px-8 py-24">
+            <div class="text-center mb-10 gsap-fade-up">
+                <h3 class="text-3xl md:text-5xl font-semibold mb-4">TUSI의 여정을 영상으로</h3>
+                <p class="text-carbon-textSecondary text-sm max-w-lg mx-auto">연소시험부터 비행 시험까지, TUSI가 걸어온 모든 순간을 담았습니다.</p>
+            </div>
+            
+            <div class="aspect-video max-w-5xl mx-auto border border-carbon-border overflow-hidden gsap-fade-up flex items-center justify-center bg-black pointer-events-none">
+                <video 
+                    class="w-full h-full object-cover scale-105" 
+                    src="tusi_video.mp4" 
+                    autoplay 
+                    muted 
+                    loop 
+                    playsinline>
+                </video>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEAM & HISTORY -->
+    <section id="team" class="py-32 bg-carbon-layer1 border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="flex flex-col lg:flex-row gap-20">
+                <div class="lg:w-1/2 gsap-fade-up">
+                    <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Who we are</p>
+                    <h2 class="text-3xl font-semibold mt-2 mb-10">Team TUSI</h2>
+                    <div class="grid grid-cols-2 gap-px bg-carbon-border">
+                        <div class="bg-carbon-bg group cursor-pointer"><div class="aspect-[4/5] overflow-hidden grayscale group-hover:grayscale-0 transition duration-500"><img src="ljw.png" class="w-full h-full object-cover opacity-70" alt="Team"></div><div class="p-4"><h4 class="font-semibold">이종원</h4><p class="text-xs text-carbon-textHelper font-mono">Project Lead / Propulsion</p></div></div>
+                        <div class="bg-carbon-bg group cursor-pointer"><div class="aspect-[4/5] overflow-hidden grayscale group-hover:grayscale-0 transition duration-500"><img src="8.png" class="w-full h-full object-cover opacity-70" alt="Team"></div><div class="p-4"><h4 class="font-semibold">김철수</h4><p class="text-xs text-carbon-textHelper font-mono">Avionics / GCS</p></div></div>
+                        <div class="bg-carbon-bg group cursor-pointer"><div class="aspect-[4/5] overflow-hidden grayscale group-hover:grayscale-0 transition duration-500"><img src="20.png" class="w-full h-full object-cover opacity-70" alt="Team"></div><div class="p-4"><h4 class="font-semibold">이영희</h4><p class="text-xs text-carbon-textHelper font-mono">Structure / Recovery</p></div></div>
+                        <div class="bg-carbon-bg group cursor-pointer"><div class="aspect-[4/5] overflow-hidden grayscale group-hover:grayscale-0 transition duration-500"><img src="21.png" class="w-full h-full object-cover opacity-70" alt="Team"></div><div class="p-4"><h4 class="font-semibold">박민수</h4><p class="text-xs text-carbon-textHelper font-mono">Software / Simulation</p></div></div>
+                    </div>
+                </div>
+                <div class="lg:w-1/2 gsap-fade-up">
+                    <div class="flex justify-between items-end mb-10"><h2 class="text-3xl font-semibold">History & Activities</h2></div>
+                    <div class="mb-10 space-y-0 font-mono text-sm">
+                        <div class="flex border-b border-carbon-border py-4"><span class="text-carbon-textHelper w-24 shrink-0">2025. 04</span><span class="text-white">TAS-I 시뮬레이터 v2.0 릴리즈 및 1,455+ 파라메트릭 해석 완료</span></div>
+                        <div class="flex border-b border-carbon-border py-4"><span class="text-carbon-textHelper w-24 shrink-0">2024. 12</span><span class="text-white">1kN급 하이브리드 엔진 CAD 설계 완료</span></div>
+                        <div class="flex border-b border-carbon-border py-4"><span class="text-carbon-textHelper w-24 shrink-0">2023. 10</span><span class="text-white">전국 대학생 로켓 대회 대상 수상</span></div>
+                        <div class="flex border-b border-carbon-border py-4"><span class="text-carbon-textHelper w-24 shrink-0">2022. 08</span><span class="text-carbon-textSecondary">500N급 고체 모터 연소 시험 성공</span></div>
+                        <div class="flex border-b border-carbon-border py-4"><span class="text-carbon-textHelper w-24 shrink-0">2021. 05</span><span class="text-carbon-textSecondary">TUSI 로켓 연구 동아리 창설</span></div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-px bg-carbon-border">
+                        <div class="aspect-square bg-carbon-bg overflow-hidden"><img src="22.png" class="img-grid-item" alt="Act"></div>
+                        <div class="aspect-square bg-carbon-bg overflow-hidden"><img src="23.png" class="img-grid-item" alt="Act"></div>
+                        <div class="aspect-square bg-carbon-bg overflow-hidden"><img src="24.png" class="img-grid-item" alt="Act"></div>
+                        <div class="aspect-square bg-carbon-bg overflow-hidden"><img src="25.png" class="img-grid-item" alt="Act"></div>
+                        <div class="aspect-square bg-carbon-bg overflow-hidden"><img src="26.png" class="img-grid-item" alt="Act"></div>
+                        <div class="aspect-square bg-carbon-bg overflow-hidden"><img src="27.png" class="img-grid-item" alt="Act"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PARTNERS -->
+    <section class="py-20 bg-carbon-bg border-carbon-top">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="text-center mb-12 gsap-fade-up"><p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Partners & Collaborators</p><h2 class="text-2xl font-semibold mt-2">협력 기관 및 파트너</h2></div>
+            <div class="flex flex-wrap justify-center items-center gap-8 gsap-fade-up opacity-40 hover:opacity-60 transition-opacity duration-500">
+                <div class="w-32 h-16 border border-carbon-border flex items-center justify-center text-carbon-textPlaceholder text-xs font-mono">[ 대학 로고 ]</div>
+                <div class="w-32 h-16 border border-carbon-border flex items-center justify-center text-carbon-textPlaceholder text-xs font-mono">[ 연구기관 ]</div>
+                <div class="w-32 h-16 border border-carbon-border flex items-center justify-center text-carbon-textPlaceholder text-xs font-mono">[ 우주항공청 ]</div>
+                <div class="w-32 h-16 border border-carbon-border flex items-center justify-center text-carbon-textPlaceholder text-xs font-mono">[ 부품 협력사 ]</div>
+                <div class="w-32 h-16 border border-carbon-border flex items-center justify-center text-carbon-textPlaceholder text-xs font-mono">[ 소재 업체 ]</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="py-32 bg-carbon-layer1 border-carbon-top">
+        <div class="max-w-3xl mx-auto px-8">
+            <div class="text-center mb-16 gsap-fade-up"><p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">FAQ</p><h2 class="text-3xl font-semibold mt-2">자주 묻는 질문</h2></div>
+            <div class="space-y-0 gsap-fade-up border border-carbon-border">
+                <div class="faq-item"><button class="faq-toggle w-full text-left px-6 py-5 flex justify-between items-center hover:bg-carbon-layer2 transition border-b border-carbon-border"><span class="font-medium text-sm pr-4">N₂O/HDPE 하이브리드 로켓은 얼마나 안전한가요?</span><svg class="faq-chevron w-5 h-5 text-carbon-textHelper shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="faq-answer px-6 bg-carbon-bg"><p class="text-sm text-carbon-textSecondary leading-relaxed py-5">산화제(N₂O)와 연료(HDPE)가 물리적으로 분리된 상태로 저장되므로, 고체 로켓과 달리 자체 폭발이 원천적으로 불가능합니다. 또한 N₂O는 자체 점화가 불가능하며, 산화제 밸브를 차단하면 즉시 연소가 중단되어 긴급 정지(abort)가 가능합니다.</p></div></div>
+                <div class="faq-item"><button class="faq-toggle w-full text-left px-6 py-5 flex justify-between items-center hover:bg-carbon-layer2 transition border-b border-carbon-border"><span class="font-medium text-sm pr-4">페이로드 중량 제한은 어떻게 되나요?</span><svg class="faq-chevron w-5 h-5 text-carbon-textHelper shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="faq-answer px-6 bg-carbon-bg"><p class="text-sm text-carbon-textSecondary leading-relaxed py-5">3~5kN급 엔진 기준으로 수 kg 수준의 페이로드를 100km 고도까지 수송할 수 있습니다. 정확한 탑재 중량은 고객의 목표 고도, 체공 시간 요구사항에 따라 TAS-I 시뮬레이터를 통해 최적화됩니다.</p></div></div>
+                <div class="faq-item"><button class="faq-toggle w-full text-left px-6 py-5 flex justify-between items-center hover:bg-carbon-layer2 transition border-b border-carbon-border"><span class="font-medium text-sm pr-4">발사 일정과 비용은 어떻게 결정되나요?</span><svg class="faq-chevron w-5 h-5 text-carbon-textHelper shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="faq-answer px-6 bg-carbon-bg"><p class="text-sm text-carbon-textSecondary leading-relaxed py-5">TUSI는 고객 맞춤형 견적을 제공합니다. 페이로드 사양, 목표 고도, 요구되는 우주 환경 체류 시간 등을 기반으로 최적의 미션 프로파일을 설계합니다.</p></div></div>
+                <div class="faq-item"><button class="faq-toggle w-full text-left px-6 py-5 flex justify-between items-center hover:bg-carbon-layer2 transition"><span class="font-medium text-sm pr-4">계절(온도)에 따라 발사 성능이 달라지나요?</span><svg class="faq-chevron w-5 h-5 text-carbon-textHelper shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button><div class="faq-answer px-6 bg-carbon-bg"><p class="text-sm text-carbon-textSecondary leading-relaxed py-5">N₂O의 포화 증기압은 온도에 크게 의존하여 최대 54%까지 성능이 변동할 수 있습니다. TUSI는 온도별로 인젝터 오리피스 크기, 연료 그레인 길이, 가압제 양을 사전에 최적화한 모듈형 운용 가이드라인을 확보하고 있어, 연중 어떤 기온에서도 일정한 성능을 보장합니다.</p></div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA / CONTACT -->
+    <section id="contact" class="py-32 bg-carbon-bg border-carbon-top relative overflow-hidden">
+        <div class="absolute inset-0 opacity-[0.04]" style="background-image: radial-gradient(#0f62fe 1px, transparent 1px); background-size: 32px 32px;"></div>
+        <div class="max-w-4xl mx-auto px-8 text-center relative z-10 gsap-fade-up">
+            <p class="text-xs uppercase tracking-[0.16em] text-carbon-textHelper font-mono">Get in Touch</p>
+            <h2 class="text-4xl md:text-6xl font-bold mt-4 mb-6">우주 환경 검증이<br>필요하신가요?</h2>
+            <p class="text-carbon-textSecondary text-sm max-w-xl mx-auto mb-12">TUSI 팀과 직접 상담하세요. 고객의 페이로드 사양에 맞는 최적의 미션 프로파일과 발사 견적을 무료로 제공합니다.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <a href="mailto:contact@tusi.aero" class="px-10 py-4 bg-carbon-blue hover:bg-carbon-blueHover text-white font-medium text-sm transition-colors inline-flex items-center justify-center gap-3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>이메일 문의</a>
+                <a href="#" class="px-10 py-4 border border-carbon-textSecondary text-white font-medium text-sm hover:bg-white/10 transition-colors inline-flex items-center justify-center gap-3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>카카오톡 채널</a>
+            </div>
+            <div class="flex flex-wrap justify-center gap-8 text-xs text-carbon-textHelper font-mono"><span>contact@tusi.aero</span><span>대한민국</span><span>tusi.aero</span></div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-8 bg-carbon-bg text-center border-t border-carbon-border">
+        <div class="max-w-[1584px] mx-auto px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="text-lg font-semibold text-white flex items-center gap-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L15 9.5L22 10.5L17 16L18.5 23L12 19L5.5 23L7 16L2 10.5L9 9.5L12 2Z" fill="#0f62fe" stroke="#0f62fe" stroke-width="1.5" stroke-linejoin="round"/></svg>TUSI</div>
+                <div class="flex gap-6 text-xs text-carbon-textHelper font-mono"><a href="#market" class="hover:text-white transition">Market</a><a href="#conops" class="hover:text-white transition">CONOPS</a><a href="#tech" class="hover:text-white transition">Technology</a><a href="#heritage" class="hover:text-white transition">Heritage</a><a href="#team" class="hover:text-white transition">Team</a><a href="#contact" class="hover:text-white transition">Contact</a></div>
+                <p class="text-xs text-carbon-textPlaceholder font-mono">© 2026 TUSI AEROSPACE. ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            gsap.registerPlugin(ScrollTrigger);
+
+            gsap.from(".gsap-hero", { y: 30, opacity: 0, duration: 1.2, stagger: 0.2, ease: "power3.out" });
+            gsap.utils.toArray(".gsap-fade-up").forEach(elem => {
+                gsap.from(elem, { scrollTrigger: { trigger: elem, start: "top 85%" }, y: 40, opacity: 0, duration: 1, ease: "power2.out", clearProps: "all" });
+            });
+
+            // CONOPS Parabolic Animation
+            const trajPath = document.getElementById('trajectory-bg');
+            const trajProgress = document.getElementById('trajectory-progress');
+            const rocketG = document.getElementById('conops-rocket-g');
+            const flameG = document.getElementById('conops-flame-g');
+            const chuteG = document.getElementById('conops-chute');
+            const rocketBody = document.getElementById('conops-rocket-body');
+            const conopsNodes = document.querySelectorAll('.conops-node');
+            
+            if (trajPath) {
+                const pathLength = trajPath.getTotalLength();
+                trajProgress.style.strokeDasharray = pathLength;
+                trajProgress.style.strokeDashoffset = pathLength;
+
+                gsap.to({}, {
+                    scrollTrigger: {
+                        trigger: ".conops-container",
+                        start: "top center",
+                        end: "bottom center",
+                        scrub: true,
+                        onUpdate: (self) => {
+                            const prog = self.progress;
+                            const percent = prog * 100;
+                            
+                            // Draw path progress
+                            trajProgress.style.strokeDashoffset = pathLength * (1 - prog);
+                            
+                            // Move rocket along path
+                            const point = trajPath.getPointAtLength(pathLength * prog);
+                            
+                            // Calculate tangent for rotation
+                            const delta = 2;
+                            const p1 = trajPath.getPointAtLength(Math.max(0, pathLength * prog - delta));
+                            const p2 = trajPath.getPointAtLength(Math.min(pathLength, pathLength * prog + delta));
+                            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI) - 90;
+                            
+                            rocketG.setAttribute('transform', `translate(${point.x}, ${point.y}) rotate(${angle})`);
+                            
+                            // Flame: visible during ascent (0-40%)
+                            flameG.setAttribute('opacity', prog < 0.4 ? '1' : '0');
+                            
+                            // Chute: visible during descent (65%+)
+                            if (prog > 0.65) {
+                                chuteG.setAttribute('opacity', Math.min(1, (prog - 0.65) * 5));
+                                rocketBody.setAttribute('transform', 'scale(0.8)');
+                            } else {
+                                chuteG.setAttribute('opacity', '0');
+                                rocketBody.setAttribute('transform', 'scale(1)');
+                            }
+                            
+                            // Activate milestone nodes
+                            conopsNodes.forEach(node => {
+                                const pos = parseInt(node.getAttribute('data-pos'));
+                                if (percent >= pos) {
+                                    node.classList.add('active');
+                                } else {
+                                    node.classList.remove('active');
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Charts
+            Chart.defaults.color = '#8d8d8d';
+            Chart.defaults.font.family = 'IBM Plex Sans';
+
+            const simTankP = [{"x": 0.05, "y": 50.886}, {"x": 0.06, "y": 50.707}, {"x": 0.07, "y": 50.531}, {"x": 0.08, "y": 50.358}, {"x": 0.09, "y": 50.187}, {"x": 0.1, "y": 50.02}, {"x": 0.11, "y": 49.855}, {"x": 0.12, "y": 49.692}, {"x": 0.13, "y": 49.533}, {"x": 0.14, "y": 49.375}, {"x": 0.15, "y": 49.22}, {"x": 0.16, "y": 49.068}, {"x": 0.17, "y": 48.917}, {"x": 0.18, "y": 48.769}, {"x": 0.19, "y": 48.623}, {"x": 0.2, "y": 48.479}, {"x": 0.21, "y": 48.337}, {"x": 0.22, "y": 48.197}, {"x": 0.23, "y": 48.059}, {"x": 0.24, "y": 47.922}, {"x": 0.25, "y": 47.787}, {"x": 0.26, "y": 47.655}, {"x": 0.27, "y": 47.523}, {"x": 0.28, "y": 47.394}, {"x": 0.29, "y": 47.265}, {"x": 0.3, "y": 47.139}, {"x": 0.31, "y": 47.014}, {"x": 0.32, "y": 46.89}, {"x": 0.33, "y": 46.768}, {"x": 0.34, "y": 46.647}, {"x": 0.35, "y": 46.527}, {"x": 0.36, "y": 46.409}, {"x": 0.37, "y": 46.292}, {"x": 0.38, "y": 46.176}, {"x": 0.39, "y": 46.061}, {"x": 0.4, "y": 45.947}, {"x": 0.41, "y": 45.835}, {"x": 0.42, "y": 45.723}, {"x": 0.43, "y": 45.613}, {"x": 0.44, "y": 45.503}, {"x": 0.45, "y": 45.395}, {"x": 0.46, "y": 45.288}, {"x": 0.47, "y": 45.181}, {"x": 0.48, "y": 45.075}, {"x": 0.49, "y": 44.971}, {"x": 0.5, "y": 44.867}, {"x": 0.51, "y": 44.764}, {"x": 0.52, "y": 44.661}, {"x": 0.53, "y": 44.56}, {"x": 0.54, "y": 44.459}, {"x": 0.55, "y": 44.359}, {"x": 0.56, "y": 44.26}, {"x": 0.57, "y": 44.162}, {"x": 0.58, "y": 44.064}, {"x": 0.59, "y": 43.967}, {"x": 0.6, "y": 43.871}, {"x": 0.61, "y": 43.775}, {"x": 0.62, "y": 43.68}, {"x": 0.63, "y": 43.585}, {"x": 0.64, "y": 43.492}, {"x": 0.65, "y": 43.398}, {"x": 0.66, "y": 43.306}, {"x": 0.67, "y": 43.213}, {"x": 0.68, "y": 43.122}, {"x": 0.69, "y": 43.031}, {"x": 0.7, "y": 42.94}, {"x": 0.71, "y": 42.85}, {"x": 0.72, "y": 42.761}, {"x": 0.73, "y": 42.672}, {"x": 0.74, "y": 42.583}, {"x": 0.75, "y": 42.495}, {"x": 0.76, "y": 42.408}, {"x": 0.77, "y": 42.321}, {"x": 0.78, "y": 42.234}, {"x": 0.79, "y": 42.148}, {"x": 0.8, "y": 42.062}, {"x": 0.81, "y": 41.977}, {"x": 0.82, "y": 41.892}, {"x": 0.83, "y": 41.807}, {"x": 0.84, "y": 41.723}, {"x": 0.85, "y": 41.639}, {"x": 0.86, "y": 41.556}, {"x": 0.87, "y": 41.473}, {"x": 0.88, "y": 41.39}, {"x": 0.89, "y": 41.308}, {"x": 0.9, "y": 41.226}, {"x": 0.91, "y": 41.144}, {"x": 0.92, "y": 41.063}, {"x": 0.93, "y": 40.982}, {"x": 0.94, "y": 40.902}, {"x": 0.95, "y": 40.821}, {"x": 0.96, "y": 40.742}, {"x": 0.97, "y": 40.662}, {"x": 0.98, "y": 40.583}, {"x": 0.99, "y": 40.504}, {"x": 1.0, "y": 40.425}, {"x": 1.01, "y": 40.346}, {"x": 1.02, "y": 40.268}, {"x": 1.03, "y": 40.19}, {"x": 1.04, "y": 40.113}, {"x": 1.05, "y": 40.035}, {"x": 1.06, "y": 39.958}, {"x": 1.07, "y": 39.882}, {"x": 1.08, "y": 39.805}, {"x": 1.09, "y": 39.729}, {"x": 1.1, "y": 39.653}, {"x": 1.11, "y": 39.577}, {"x": 1.12, "y": 39.502}, {"x": 1.13, "y": 39.426}, {"x": 1.14, "y": 39.351}, {"x": 1.15, "y": 39.277}, {"x": 1.16, "y": 39.202}, {"x": 1.17, "y": 39.128}, {"x": 1.18, "y": 39.054}, {"x": 1.19, "y": 38.98}, {"x": 1.2, "y": 38.906}, {"x": 1.21, "y": 38.833}, {"x": 1.22, "y": 38.759}, {"x": 1.23, "y": 38.686}, {"x": 1.24, "y": 38.614}, {"x": 1.25, "y": 38.541}, {"x": 1.26, "y": 38.469}, {"x": 1.27, "y": 38.396}, {"x": 1.28, "y": 38.324}, {"x": 1.29, "y": 38.253}, {"x": 1.3, "y": 38.181}, {"x": 1.31, "y": 38.11}, {"x": 1.32, "y": 38.039}, {"x": 1.33, "y": 37.968}, {"x": 1.34, "y": 37.897}, {"x": 1.35, "y": 37.826}, {"x": 1.36, "y": 37.756}, {"x": 1.37, "y": 37.685}, {"x": 1.38, "y": 37.615}, {"x": 1.39, "y": 37.545}, {"x": 1.4, "y": 37.475}, {"x": 1.41, "y": 37.406}, {"x": 1.42, "y": 37.336}, {"x": 1.43, "y": 37.267}, {"x": 1.44, "y": 37.198}, {"x": 1.45, "y": 37.129}, {"x": 1.46, "y": 37.061}, {"x": 1.47, "y": 36.992}, {"x": 1.48, "y": 36.924}, {"x": 1.49, "y": 36.855}, {"x": 1.5, "y": 36.787}, {"x": 1.51, "y": 36.719}, {"x": 1.52, "y": 36.651}, {"x": 1.53, "y": 36.584}, {"x": 1.54, "y": 36.516}, {"x": 1.55, "y": 36.449}, {"x": 1.56, "y": 36.382}, {"x": 1.57, "y": 36.315}, {"x": 1.58, "y": 36.248}, {"x": 1.59, "y": 36.181}, {"x": 1.6, "y": 36.115}, {"x": 1.61, "y": 36.048}, {"x": 1.62, "y": 35.982}, {"x": 1.63, "y": 35.916}, {"x": 1.64, "y": 35.85}, {"x": 1.65, "y": 35.784}, {"x": 1.66, "y": 35.718}, {"x": 1.67, "y": 35.652}, {"x": 1.68, "y": 35.587}, {"x": 1.69, "y": 35.522}, {"x": 1.7, "y": 35.456}, {"x": 1.71, "y": 35.391}, {"x": 1.72, "y": 35.326}, {"x": 1.73, "y": 35.261}, {"x": 1.74, "y": 35.197}, {"x": 1.75, "y": 35.132}, {"x": 1.76, "y": 35.068}, {"x": 1.77, "y": 35.004}, {"x": 1.78, "y": 34.939}, {"x": 1.79, "y": 34.875}, {"x": 1.8, "y": 34.811}, {"x": 1.81, "y": 34.748}, {"x": 1.82, "y": 34.684}, {"x": 1.83, "y": 34.62}, {"x": 1.84, "y": 34.557}, {"x": 1.85, "y": 34.494}, {"x": 1.86, "y": 34.43}, {"x": 1.87, "y": 34.367}, {"x": 1.88, "y": 34.304}, {"x": 1.89, "y": 34.242}, {"x": 1.9, "y": 34.179}, {"x": 1.91, "y": 34.116}, {"x": 1.92, "y": 34.054}, {"x": 1.93, "y": 33.991}, {"x": 1.94, "y": 33.929}, {"x": 1.95, "y": 33.867}, {"x": 1.96, "y": 33.805}, {"x": 1.97, "y": 33.743}, {"x": 1.98, "y": 33.681}, {"x": 1.99, "y": 33.62}, {"x": 2.0, "y": 33.558}, {"x": 2.01, "y": 33.497}, {"x": 2.02, "y": 33.435}, {"x": 2.03, "y": 33.374}, {"x": 2.04, "y": 33.313}, {"x": 2.05, "y": 33.252}, {"x": 2.06, "y": 33.191}, {"x": 2.07, "y": 33.13}, {"x": 2.08, "y": 33.069}, {"x": 2.09, "y": 33.009}, {"x": 2.1, "y": 32.948}, {"x": 2.11, "y": 32.888}, {"x": 2.12, "y": 32.827}];
+            const simChamberP = [{"x": 0.05, "y": 7.345}, {"x": 0.06, "y": 8.018}, {"x": 0.07, "y": 8.662}, {"x": 0.08, "y": 9.295}, {"x": 0.09, "y": 9.901}, {"x": 0.1, "y": 10.498}, {"x": 0.11, "y": 11.081}, {"x": 0.12, "y": 11.649}, {"x": 0.13, "y": 12.201}, {"x": 0.14, "y": 12.736}, {"x": 0.15, "y": 13.251}, {"x": 0.16, "y": 13.745}, {"x": 0.17, "y": 14.226}, {"x": 0.18, "y": 14.695}, {"x": 0.19, "y": 15.15}, {"x": 0.2, "y": 15.589}, {"x": 0.21, "y": 16.004}, {"x": 0.22, "y": 16.406}, {"x": 0.23, "y": 16.798}, {"x": 0.24, "y": 17.177}, {"x": 0.25, "y": 17.543}, {"x": 0.26, "y": 17.897}, {"x": 0.27, "y": 18.238}, {"x": 0.28, "y": 18.565}, {"x": 0.29, "y": 18.882}, {"x": 0.3, "y": 19.189}, {"x": 0.31, "y": 19.486}, {"x": 0.32, "y": 19.77}, {"x": 0.33, "y": 20.042}, {"x": 0.34, "y": 20.297}, {"x": 0.35, "y": 20.542}, {"x": 0.36, "y": 20.78}, {"x": 0.37, "y": 21.013}, {"x": 0.38, "y": 21.238}, {"x": 0.39, "y": 21.452}, {"x": 0.4, "y": 21.657}, {"x": 0.41, "y": 21.856}, {"x": 0.42, "y": 22.048}, {"x": 0.43, "y": 22.232}, {"x": 0.44, "y": 22.408}, {"x": 0.45, "y": 22.575}, {"x": 0.46, "y": 22.736}, {"x": 0.47, "y": 22.89}, {"x": 0.48, "y": 23.035}, {"x": 0.49, "y": 23.174}, {"x": 0.5, "y": 23.309}, {"x": 0.51, "y": 23.439}, {"x": 0.52, "y": 23.563}, {"x": 0.53, "y": 23.681}, {"x": 0.54, "y": 23.793}, {"x": 0.55, "y": 23.902}, {"x": 0.56, "y": 24.007}, {"x": 0.57, "y": 24.109}, {"x": 0.58, "y": 24.204}, {"x": 0.59, "y": 24.294}, {"x": 0.6, "y": 24.381}, {"x": 0.61, "y": 24.465}, {"x": 0.62, "y": 24.543}, {"x": 0.63, "y": 24.616}, {"x": 0.64, "y": 24.684}, {"x": 0.65, "y": 24.748}, {"x": 0.66, "y": 24.811}, {"x": 0.67, "y": 24.871}, {"x": 0.68, "y": 24.929}, {"x": 0.69, "y": 24.985}, {"x": 0.7, "y": 25.039}, {"x": 0.71, "y": 25.091}, {"x": 0.72, "y": 25.138}, {"x": 0.73, "y": 25.182}, {"x": 0.74, "y": 25.223}, {"x": 0.75, "y": 25.263}, {"x": 0.76, "y": 25.3}, {"x": 0.77, "y": 25.332}, {"x": 0.78, "y": 25.361}, {"x": 0.79, "y": 25.388}, {"x": 0.8, "y": 25.414}, {"x": 0.81, "y": 25.44}, {"x": 0.82, "y": 25.466}, {"x": 0.83, "y": 25.489}, {"x": 0.84, "y": 25.511}, {"x": 0.85, "y": 25.53}, {"x": 0.86, "y": 25.547}, {"x": 0.87, "y": 25.562}, {"x": 0.88, "y": 25.576}, {"x": 0.89, "y": 25.589}, {"x": 0.9, "y": 25.602}, {"x": 0.91, "y": 25.614}, {"x": 0.92, "y": 25.625}, {"x": 0.93, "y": 25.63}, {"x": 0.94, "y": 25.633}, {"x": 0.95, "y": 25.636}, {"x": 0.96, "y": 25.64}, {"x": 0.97, "y": 25.642}, {"x": 0.98, "y": 25.644}, {"x": 0.99, "y": 25.644}, {"x": 1.0, "y": 25.642}, {"x": 1.01, "y": 25.641}, {"x": 1.02, "y": 25.639}, {"x": 1.03, "y": 25.636}, {"x": 1.04, "y": 25.633}, {"x": 1.05, "y": 25.63}, {"x": 1.06, "y": 25.627}, {"x": 1.07, "y": 25.62}, {"x": 1.08, "y": 25.612}, {"x": 1.09, "y": 25.603}, {"x": 1.1, "y": 25.591}, {"x": 1.11, "y": 25.58}, {"x": 1.12, "y": 25.569}, {"x": 1.13, "y": 25.558}, {"x": 1.14, "y": 25.547}, {"x": 1.15, "y": 25.535}, {"x": 1.16, "y": 25.521}, {"x": 1.17, "y": 25.508}, {"x": 1.18, "y": 25.496}, {"x": 1.19, "y": 25.483}, {"x": 1.2, "y": 25.468}, {"x": 1.21, "y": 25.453}, {"x": 1.22, "y": 25.438}, {"x": 1.23, "y": 25.421}, {"x": 1.24, "y": 25.405}, {"x": 1.25, "y": 25.388}, {"x": 1.26, "y": 25.372}, {"x": 1.27, "y": 25.353}, {"x": 1.28, "y": 25.333}, {"x": 1.29, "y": 25.314}, {"x": 1.3, "y": 25.294}, {"x": 1.31, "y": 25.275}, {"x": 1.32, "y": 25.255}, {"x": 1.33, "y": 25.234}, {"x": 1.34, "y": 25.214}, {"x": 1.35, "y": 25.194}, {"x": 1.36, "y": 25.173}, {"x": 1.37, "y": 25.152}, {"x": 1.38, "y": 25.131}, {"x": 1.39, "y": 25.11}, {"x": 1.4, "y": 25.089}, {"x": 1.41, "y": 25.067}, {"x": 1.42, "y": 25.045}, {"x": 1.43, "y": 25.024}, {"x": 1.44, "y": 25.001}, {"x": 1.45, "y": 24.976}, {"x": 1.46, "y": 24.95}, {"x": 1.47, "y": 24.925}, {"x": 1.48, "y": 24.901}, {"x": 1.49, "y": 24.876}, {"x": 1.5, "y": 24.852}, {"x": 1.51, "y": 24.829}, {"x": 1.52, "y": 24.805}, {"x": 1.53, "y": 24.782}, {"x": 1.54, "y": 24.758}, {"x": 1.55, "y": 24.733}, {"x": 1.56, "y": 24.708}, {"x": 1.57, "y": 24.684}, {"x": 1.58, "y": 24.658}, {"x": 1.59, "y": 24.633}, {"x": 1.6, "y": 24.608}, {"x": 1.61, "y": 24.583}, {"x": 1.62, "y": 24.558}, {"x": 1.63, "y": 24.53}, {"x": 1.64, "y": 24.501}, {"x": 1.65, "y": 24.474}, {"x": 1.66, "y": 24.447}, {"x": 1.67, "y": 24.421}, {"x": 1.68, "y": 24.395}, {"x": 1.69, "y": 24.369}, {"x": 1.7, "y": 24.344}, {"x": 1.71, "y": 24.318}, {"x": 1.72, "y": 24.29}, {"x": 1.73, "y": 24.262}, {"x": 1.74, "y": 24.234}, {"x": 1.75, "y": 24.208}, {"x": 1.76, "y": 24.182}, {"x": 1.77, "y": 24.156}, {"x": 1.78, "y": 24.129}, {"x": 1.79, "y": 24.103}, {"x": 1.8, "y": 24.077}, {"x": 1.81, "y": 24.049}, {"x": 1.82, "y": 24.02}, {"x": 1.83, "y": 23.991}, {"x": 1.84, "y": 23.962}, {"x": 1.85, "y": 23.934}, {"x": 1.86, "y": 23.906}, {"x": 1.87, "y": 23.878}, {"x": 1.88, "y": 23.85}, {"x": 1.89, "y": 23.822}, {"x": 1.9, "y": 23.794}, {"x": 1.91, "y": 23.766}, {"x": 1.92, "y": 23.738}, {"x": 1.93, "y": 23.712}, {"x": 1.94, "y": 23.685}, {"x": 1.95, "y": 23.658}, {"x": 1.96, "y": 23.631}, {"x": 1.97, "y": 23.603}, {"x": 1.98, "y": 23.575}, {"x": 1.99, "y": 23.547}, {"x": 2.0, "y": 23.518}, {"x": 2.01, "y": 23.49}, {"x": 2.02, "y": 23.46}, {"x": 2.03, "y": 23.43}, {"x": 2.04, "y": 23.401}, {"x": 2.05, "y": 23.373}, {"x": 2.06, "y": 23.344}, {"x": 2.07, "y": 23.315}, {"x": 2.08, "y": 23.287}, {"x": 2.09, "y": 23.26}, {"x": 2.1, "y": 23.232}, {"x": 2.11, "y": 23.203}, {"x": 2.12, "y": 23.176}];
+            const simThrust = [{"x": 0.05, "y": 4.037}, {"x": 0.06, "y": 4.713}, {"x": 0.07, "y": 5.36}, {"x": 0.08, "y": 5.997}, {"x": 0.09, "y": 6.606}, {"x": 0.1, "y": 7.205}, {"x": 0.11, "y": 7.792}, {"x": 0.12, "y": 8.363}, {"x": 0.13, "y": 8.917}, {"x": 0.14, "y": 9.454}, {"x": 0.15, "y": 9.972}, {"x": 0.16, "y": 10.468}, {"x": 0.17, "y": 10.952}, {"x": 0.18, "y": 11.423}, {"x": 0.19, "y": 11.88}, {"x": 0.2, "y": 12.32}, {"x": 0.21, "y": 12.737}, {"x": 0.22, "y": 13.14}, {"x": 0.23, "y": 13.534}, {"x": 0.24, "y": 13.915}, {"x": 0.25, "y": 14.282}, {"x": 0.26, "y": 14.639}, {"x": 0.27, "y": 14.981}, {"x": 0.28, "y": 15.309}, {"x": 0.29, "y": 15.628}, {"x": 0.3, "y": 15.936}, {"x": 0.31, "y": 16.234}, {"x": 0.32, "y": 16.52}, {"x": 0.33, "y": 16.792}, {"x": 0.34, "y": 17.048}, {"x": 0.35, "y": 17.294}, {"x": 0.36, "y": 17.533}, {"x": 0.37, "y": 17.766}, {"x": 0.38, "y": 17.993}, {"x": 0.39, "y": 18.208}, {"x": 0.4, "y": 18.414}, {"x": 0.41, "y": 18.614}, {"x": 0.42, "y": 18.807}, {"x": 0.43, "y": 18.991}, {"x": 0.44, "y": 19.168}, {"x": 0.45, "y": 19.335}, {"x": 0.46, "y": 19.497}, {"x": 0.47, "y": 19.652}, {"x": 0.48, "y": 19.797}, {"x": 0.49, "y": 19.937}, {"x": 0.5, "y": 20.072}, {"x": 0.51, "y": 20.203}, {"x": 0.52, "y": 20.327}, {"x": 0.53, "y": 20.445}, {"x": 0.54, "y": 20.558}, {"x": 0.55, "y": 20.667}, {"x": 0.56, "y": 20.773}, {"x": 0.57, "y": 20.875}, {"x": 0.58, "y": 20.971}, {"x": 0.59, "y": 21.061}, {"x": 0.6, "y": 21.148}, {"x": 0.61, "y": 21.233}, {"x": 0.62, "y": 21.31}, {"x": 0.63, "y": 21.384}, {"x": 0.64, "y": 21.452}, {"x": 0.65, "y": 21.516}, {"x": 0.66, "y": 21.579}, {"x": 0.67, "y": 21.64}, {"x": 0.68, "y": 21.698}, {"x": 0.69, "y": 21.754}, {"x": 0.7, "y": 21.809}, {"x": 0.71, "y": 21.861}, {"x": 0.72, "y": 21.908}, {"x": 0.73, "y": 21.952}, {"x": 0.74, "y": 21.994}, {"x": 0.75, "y": 22.033}, {"x": 0.76, "y": 22.07}, {"x": 0.77, "y": 22.102}, {"x": 0.78, "y": 22.132}, {"x": 0.79, "y": 22.159}, {"x": 0.8, "y": 22.185}, {"x": 0.81, "y": 22.212}, {"x": 0.82, "y": 22.238}, {"x": 0.83, "y": 22.261}, {"x": 0.84, "y": 22.283}, {"x": 0.85, "y": 22.302}, {"x": 0.86, "y": 22.319}, {"x": 0.87, "y": 22.334}, {"x": 0.88, "y": 22.348}, {"x": 0.89, "y": 22.361}, {"x": 0.9, "y": 22.374}, {"x": 0.91, "y": 22.386}, {"x": 0.92, "y": 22.397}, {"x": 0.93, "y": 22.402}, {"x": 0.94, "y": 22.405}, {"x": 0.95, "y": 22.408}, {"x": 0.96, "y": 22.412}, {"x": 0.97, "y": 22.414}, {"x": 0.98, "y": 22.416}, {"x": 0.99, "y": 22.416}, {"x": 1.0, "y": 22.414}, {"x": 1.01, "y": 22.413}, {"x": 1.02, "y": 22.412}, {"x": 1.03, "y": 22.409}, {"x": 1.04, "y": 22.405}, {"x": 1.05, "y": 22.402}, {"x": 1.06, "y": 22.399}, {"x": 1.07, "y": 22.392}, {"x": 1.08, "y": 22.384}, {"x": 1.09, "y": 22.375}, {"x": 1.1, "y": 22.363}, {"x": 1.11, "y": 22.352}, {"x": 1.12, "y": 22.341}, {"x": 1.13, "y": 22.329}, {"x": 1.14, "y": 22.319}, {"x": 1.15, "y": 22.306}, {"x": 1.16, "y": 22.293}, {"x": 1.17, "y": 22.28}, {"x": 1.18, "y": 22.268}, {"x": 1.19, "y": 22.254}, {"x": 1.2, "y": 22.24}, {"x": 1.21, "y": 22.225}, {"x": 1.22, "y": 22.209}, {"x": 1.23, "y": 22.193}, {"x": 1.24, "y": 22.176}, {"x": 1.25, "y": 22.16}, {"x": 1.26, "y": 22.143}, {"x": 1.27, "y": 22.124}, {"x": 1.28, "y": 22.104}, {"x": 1.29, "y": 22.085}, {"x": 1.3, "y": 22.065}, {"x": 1.31, "y": 22.046}, {"x": 1.32, "y": 22.026}, {"x": 1.33, "y": 22.004}, {"x": 1.34, "y": 21.984}, {"x": 1.35, "y": 21.964}, {"x": 1.36, "y": 21.944}, {"x": 1.37, "y": 21.923}, {"x": 1.38, "y": 21.902}, {"x": 1.39, "y": 21.88}, {"x": 1.4, "y": 21.859}, {"x": 1.41, "y": 21.837}, {"x": 1.42, "y": 21.815}, {"x": 1.43, "y": 21.794}, {"x": 1.44, "y": 21.771}, {"x": 1.45, "y": 21.746}, {"x": 1.46, "y": 21.72}, {"x": 1.47, "y": 21.695}, {"x": 1.48, "y": 21.67}, {"x": 1.49, "y": 21.646}, {"x": 1.5, "y": 21.622}, {"x": 1.51, "y": 21.598}, {"x": 1.52, "y": 21.574}, {"x": 1.53, "y": 21.551}, {"x": 1.54, "y": 21.527}, {"x": 1.55, "y": 21.502}, {"x": 1.56, "y": 21.477}, {"x": 1.57, "y": 21.453}, {"x": 1.58, "y": 21.427}, {"x": 1.59, "y": 21.401}, {"x": 1.6, "y": 21.376}, {"x": 1.61, "y": 21.352}, {"x": 1.62, "y": 21.327}, {"x": 1.63, "y": 21.298}, {"x": 1.64, "y": 21.269}, {"x": 1.65, "y": 21.242}, {"x": 1.66, "y": 21.215}, {"x": 1.67, "y": 21.189}, {"x": 1.68, "y": 21.162}, {"x": 1.69, "y": 21.137}, {"x": 1.7, "y": 21.111}, {"x": 1.71, "y": 21.085}, {"x": 1.72, "y": 21.057}, {"x": 1.73, "y": 21.029}, {"x": 1.74, "y": 21.002}, {"x": 1.75, "y": 20.975}, {"x": 1.76, "y": 20.949}, {"x": 1.77, "y": 20.923}, {"x": 1.78, "y": 20.896}, {"x": 1.79, "y": 20.87}, {"x": 1.8, "y": 20.843}, {"x": 1.81, "y": 20.816}, {"x": 1.82, "y": 20.786}, {"x": 1.83, "y": 20.757}, {"x": 1.84, "y": 20.728}, {"x": 1.85, "y": 20.7}, {"x": 1.86, "y": 20.672}, {"x": 1.87, "y": 20.644}, {"x": 1.88, "y": 20.616}, {"x": 1.89, "y": 20.587}, {"x": 1.9, "y": 20.56}, {"x": 1.91, "y": 20.531}, {"x": 1.92, "y": 20.504}, {"x": 1.93, "y": 20.477}, {"x": 1.94, "y": 20.45}, {"x": 1.95, "y": 20.423}, {"x": 1.96, "y": 20.396}, {"x": 1.97, "y": 20.368}, {"x": 1.98, "y": 20.34}, {"x": 1.99, "y": 20.311}, {"x": 2.0, "y": 20.283}, {"x": 2.01, "y": 20.254}, {"x": 2.02, "y": 20.224}, {"x": 2.03, "y": 20.194}, {"x": 2.04, "y": 20.165}, {"x": 2.05, "y": 20.137}, {"x": 2.06, "y": 20.108}, {"x": 2.07, "y": 20.079}, {"x": 2.08, "y": 20.051}, {"x": 2.09, "y": 20.023}, {"x": 2.1, "y": 19.995}, {"x": 2.11, "y": 19.966}, {"x": 2.12, "y": 19.939}];
+            const expTankP = [{"x": 0.0918, "y": 51.199}, {"x": 0.2088, "y": 49.125}, {"x": 0.2556, "y": 47.784}, {"x": 0.2965, "y": 47.053}, {"x": 0.3139, "y": 45.349}, {"x": 0.3782, "y": 44.13}, {"x": 0.4484, "y": 42.91}, {"x": 0.5302, "y": 40.838}, {"x": 0.6416, "y": 40.588}, {"x": 0.712, "y": 40.583}, {"x": 0.8352, "y": 40.819}, {"x": 0.9465, "y": 40.204}, {"x": 1.0932, "y": 40.439}, {"x": 1.2339, "y": 40.187}, {"x": 1.4331, "y": 38.838}, {"x": 1.6499, "y": 37.244}, {"x": 1.8316, "y": 36.139}, {"x": 1.9487, "y": 34.794}, {"x": 2.0951, "y": 33.569}];
+            const expChamberP = [{"x": 0.06, "y": 2.323}, {"x": 0.0731, "y": 3.348}, {"x": 0.0863, "y": 4.34}, {"x": 0.0929, "y": 5.209}, {"x": 0.106, "y": 6.071}, {"x": 0.1191, "y": 6.984}, {"x": 0.1322, "y": 7.889}, {"x": 0.1551, "y": 8.725}, {"x": 0.1844, "y": 9.46}, {"x": 0.2131, "y": 10.325}, {"x": 0.2236, "y": 11.239}, {"x": 0.2432, "y": 12.168}, {"x": 0.2563, "y": 13.042}, {"x": 0.2694, "y": 13.949}, {"x": 0.2825, "y": 14.823}, {"x": 0.2956, "y": 15.68}, {"x": 0.3087, "y": 16.537}, {"x": 0.3219, "y": 17.478}, {"x": 0.3415, "y": 18.486}, {"x": 0.3546, "y": 19.293}, {"x": 0.371, "y": 20.352}, {"x": 0.3886, "y": 21.356}, {"x": 0.4037, "y": 22.317}, {"x": 0.4201, "y": 23.18}, {"x": 0.4397, "y": 24.008}, {"x": 0.4657, "y": 24.85}, {"x": 0.5015, "y": 25.485}, {"x": 0.5405, "y": 25.774}, {"x": 0.5795, "y": 26.119}, {"x": 0.6185, "y": 26.577}, {"x": 0.6575, "y": 26.978}, {"x": 0.6965, "y": 26.931}, {"x": 0.7354, "y": 26.614}, {"x": 0.7743, "y": 26.421}, {"x": 0.8133, "y": 26.576}, {"x": 0.8523, "y": 26.988}, {"x": 0.8913, "y": 27.233}, {"x": 0.9302, "y": 27.152}, {"x": 0.9691, "y": 26.847}, {"x": 1.008, "y": 26.62}, {"x": 1.047, "y": 26.82}, {"x": 1.086, "y": 26.952}, {"x": 1.1249, "y": 26.815}, {"x": 1.1638, "y": 26.443}, {"x": 1.2027, "y": 26.171}, {"x": 1.2416, "y": 26.146}, {"x": 1.2806, "y": 26.155}, {"x": 1.3195, "y": 26.007}, {"x": 1.3584, "y": 25.758}, {"x": 1.3973, "y": 25.554}, {"x": 1.4363, "y": 25.518}, {"x": 1.4752, "y": 25.583}, {"x": 1.5142, "y": 25.569}, {"x": 1.5531, "y": 25.253}, {"x": 1.592, "y": 24.835}, {"x": 1.6309, "y": 24.665}, {"x": 1.6698, "y": 24.719}, {"x": 1.7088, "y": 24.772}, {"x": 1.7477, "y": 24.534}, {"x": 1.7866, "y": 24.072}, {"x": 1.8255, "y": 23.577}, {"x": 1.8644, "y": 23.44}, {"x": 1.9033, "y": 23.258}, {"x": 1.9422, "y": 22.942}, {"x": 1.9811, "y": 22.435}, {"x": 2.02, "y": 22.118}, {"x": 2.0589, "y": 21.824}, {"x": 2.0978, "y": 21.643}, {"x": 2.1367, "y": 21.539}, {"x": 2.1756, "y": 21.032}];
+            const expThrust = [{"x": 0.0614, "y": 8.772}, {"x": 0.0783, "y": 8.769}, {"x": 0.0951, "y": 8.772}, {"x": 0.112, "y": 8.768}, {"x": 0.1289, "y": 8.767}, {"x": 0.1458, "y": 8.78}, {"x": 0.1633, "y": 8.757}, {"x": 0.1772, "y": 8.602}, {"x": 0.1793, "y": 8.301}, {"x": 0.183, "y": 8.121}, {"x": 0.1856, "y": 8.649}, {"x": 0.198, "y": 8.475}, {"x": 0.1969, "y": 8.134}, {"x": 0.2133, "y": 8.611}, {"x": 0.2233, "y": 8.91}, {"x": 0.2297, "y": 9.212}, {"x": 0.2316, "y": 9.5}, {"x": 0.2245, "y": 8.592}, {"x": 0.2317, "y": 8.875}, {"x": 0.246, "y": 9.776}, {"x": 0.2489, "y": 10.078}, {"x": 0.2424, "y": 9.507}, {"x": 0.2544, "y": 10.405}, {"x": 0.2607, "y": 10.855}, {"x": 0.257, "y": 10.574}, {"x": 0.2562, "y": 9.832}, {"x": 0.2591, "y": 10.095}, {"x": 0.2696, "y": 11.188}, {"x": 0.2721, "y": 11.453}, {"x": 0.2755, "y": 11.787}, {"x": 0.2703, "y": 10.769}, {"x": 0.2813, "y": 12.048}, {"x": 0.2839, "y": 12.309}, {"x": 0.2873, "y": 12.652}, {"x": 0.2829, "y": 11.563}, {"x": 0.293, "y": 12.873}, {"x": 0.2868, "y": 11.726}, {"x": 0.2982, "y": 13.223}, {"x": 0.3019, "y": 13.559}, {"x": 0.2942, "y": 12.389}, {"x": 0.3077, "y": 13.847}, {"x": 0.3104, "y": 14.179}, {"x": 0.3034, "y": 13.001}, {"x": 0.3123, "y": 14.508}, {"x": 0.319, "y": 14.724}, {"x": 0.3102, "y": 13.444}, {"x": 0.322, "y": 15.004}, {"x": 0.318, "y": 13.945}, {"x": 0.3281, "y": 15.243}, {"x": 0.3211, "y": 14.342}, {"x": 0.3333, "y": 15.714}, {"x": 0.3339, "y": 15.487}, {"x": 0.3366, "y": 16.03}, {"x": 0.3428, "y": 16.238}, {"x": 0.3366, "y": 15.279}, {"x": 0.3479, "y": 16.63}, {"x": 0.3454, "y": 15.845}, {"x": 0.3572, "y": 16.926}, {"x": 0.3541, "y": 16.441}, {"x": 0.363, "y": 17.18}, {"x": 0.3599, "y": 16.685}, {"x": 0.3709, "y": 17.397}, {"x": 0.3714, "y": 17.114}, {"x": 0.3827, "y": 17.624}, {"x": 0.3855, "y": 17.942}, {"x": 0.3887, "y": 18.384}, {"x": 0.3861, "y": 18.124}, {"x": 0.3942, "y": 18.722}, {"x": 0.3857, "y": 17.407}, {"x": 0.4006, "y": 18.995}, {"x": 0.3943, "y": 17.762}, {"x": 0.3974, "y": 18.305}, {"x": 0.3973, "y": 18.07}, {"x": 0.4171, "y": 19.328}, {"x": 0.4139, "y": 19.021}, {"x": 0.4196, "y": 19.662}, {"x": 0.4264, "y": 19.892}, {"x": 0.4422, "y": 20.132}, {"x": 0.4419, "y": 19.881}, {"x": 0.4499, "y": 20.412}, {"x": 0.4551, "y": 20.715}, {"x": 0.4519, "y": 20.12}, {"x": 0.4577, "y": 20.354}, {"x": 0.4706, "y": 20.891}, {"x": 0.472, "y": 20.738}, {"x": 0.4807, "y": 21.2}, {"x": 0.4833, "y": 20.939}, {"x": 0.4962, "y": 21.364}, {"x": 0.5065, "y": 21.665}, {"x": 0.5061, "y": 21.368}, {"x": 0.5212, "y": 21.819}, {"x": 0.5343, "y": 22.063}, {"x": 0.5495, "y": 22.188}, {"x": 0.565, "y": 22.384}, {"x": 0.5813, "y": 22.559}, {"x": 0.5969, "y": 22.666}, {"x": 0.6145, "y": 22.717}, {"x": 0.6328, "y": 22.807}, {"x": 0.6491, "y": 22.904}, {"x": 0.6671, "y": 22.905}, {"x": 0.6828, "y": 22.916}, {"x": 0.6997, "y": 22.913}, {"x": 0.7166, "y": 22.893}, {"x": 0.7335, "y": 22.915}, {"x": 0.7504, "y": 22.965}, {"x": 0.7673, "y": 22.968}, {"x": 0.7842, "y": 23.023}, {"x": 0.8011, "y": 23.057}, {"x": 0.8181, "y": 23.152}, {"x": 0.835, "y": 23.248}, {"x": 0.8519, "y": 23.304}, {"x": 0.8682, "y": 23.408}, {"x": 0.8865, "y": 23.475}, {"x": 0.9041, "y": 23.521}, {"x": 0.9196, "y": 23.535}, {"x": 0.9365, "y": 23.567}, {"x": 0.9519, "y": 23.52}, {"x": 0.9702, "y": 23.527}, {"x": 0.9871, "y": 23.508}, {"x": 1.0034, "y": 23.465}, {"x": 1.0209, "y": 23.481}, {"x": 1.0388, "y": 23.472}, {"x": 1.0537, "y": 23.511}, {"x": 1.0717, "y": 23.465}, {"x": 1.0873, "y": 23.457}, {"x": 1.1053, "y": 23.482}, {"x": 1.1236, "y": 23.425}, {"x": 1.139, "y": 23.373}, {"x": 1.1565, "y": 23.34}, {"x": 1.1728, "y": 23.325}, {"x": 1.1896, "y": 23.266}, {"x": 1.2065, "y": 23.292}, {"x": 1.2234, "y": 23.278}, {"x": 1.2403, "y": 23.252}, {"x": 1.2557, "y": 23.198}, {"x": 1.2726, "y": 23.15}, {"x": 1.2809, "y": 23.03}, {"x": 1.2964, "y": 23.047}, {"x": 1.3133, "y": 22.988}, {"x": 1.3301, "y": 22.957}, {"x": 1.347, "y": 22.937}, {"x": 1.3639, "y": 22.954}, {"x": 1.3808, "y": 23.007}, {"x": 1.3977, "y": 23.015}, {"x": 1.4145, "y": 23.017}, {"x": 1.4315, "y": 23.004}, {"x": 1.4488, "y": 22.965}, {"x": 1.4638, "y": 22.915}, {"x": 1.4757, "y": 22.818}, {"x": 1.4891, "y": 22.79}, {"x": 1.4982, "y": 22.676}, {"x": 1.5115, "y": 22.681}, {"x": 1.5227, "y": 22.598}, {"x": 1.5371, "y": 22.627}, {"x": 1.5551, "y": 22.581}, {"x": 1.5711, "y": 22.575}, {"x": 1.5888, "y": 22.574}, {"x": 1.6055, "y": 22.604}, {"x": 1.6222, "y": 22.603}, {"x": 1.6395, "y": 22.582}, {"x": 1.6564, "y": 22.523}, {"x": 1.6746, "y": 22.449}, {"x": 1.6905, "y": 22.407}, {"x": 1.7058, "y": 22.368}, {"x": 1.7238, "y": 22.294}, {"x": 1.74, "y": 22.233}, {"x": 1.756, "y": 22.145}, {"x": 1.7714, "y": 22.102}, {"x": 1.787, "y": 22.114}, {"x": 1.8046, "y": 22.038}, {"x": 1.8199, "y": 21.943}, {"x": 1.8347, "y": 21.917}, {"x": 1.8417, "y": 21.802}, {"x": 1.8581, "y": 21.782}, {"x": 1.8709, "y": 21.653}, {"x": 1.8852, "y": 21.584}, {"x": 1.8964, "y": 21.421}, {"x": 1.9104, "y": 21.356}, {"x": 1.9216, "y": 21.225}, {"x": 1.9381, "y": 21.163}, {"x": 1.9527, "y": 21.049}, {"x": 1.9662, "y": 20.938}, {"x": 1.9805, "y": 20.866}, {"x": 1.9965, "y": 20.776}, {"x": 2.0121, "y": 20.757}, {"x": 2.0262, "y": 20.684}, {"x": 2.0339, "y": 20.85}, {"x": 2.048, "y": 20.848}, {"x": 2.0479, "y": 20.588}, {"x": 2.0567, "y": 20.475}, {"x": 2.0717, "y": 20.514}, {"x": 2.0714, "y": 20.284}, {"x": 2.0886, "y": 20.281}, {"x": 2.1053, "y": 20.228}, {"x": 2.1222, "y": 20.154}, {"x": 2.1394, "y": 20.127}, {"x": 2.1545, "y": 20.088}, {"x": 2.1706, "y": 20.002}, {"x": 2.1854, "y": 19.923}, {"x": 2.1937, "y": 19.73}];
+
+            const commonOptions = {
+                responsive: true,
+                interaction: { mode: 'nearest', intersect: false },
+                plugins: { legend: { labels: { color: '#c6c6c6', boxWidth: 12, font: { size: 11 } } } },
+                scales: {
+                    x: { type: 'linear', grid: { color: '#262626' }, ticks: { color: '#8d8d8d', callback: v => v.toFixed(1) + 's' }, title: { display: true, text: 'Time (s)', color: '#8d8d8d' } },
+                    y: { grid: { color: '#262626' }, ticks: { color: '#8d8d8d' } }
+                },
+                elements: { point: { radius: 0, hitRadius: 10 }, line: { tension: 0.2 } }
+            };
+
+            new Chart(document.getElementById('chart-tank'), { type: 'scatter', data: { datasets: [
+                { label: 'Hot-fire', data: expTankP, borderColor: '#f4f4f4', backgroundColor: 'rgba(244,244,244,0.5)', showLine: true, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#f4f4f4' },
+                { label: 'TAS-I Sim', data: simTankP, borderColor: '#0f62fe', showLine: true, borderDash: [4,4], borderWidth: 2, pointRadius: 0 }
+            ]}, options: { ...commonOptions, plugins: { ...commonOptions.plugins, title: { display: true, text: 'Oxidizer Tank Pressure (bar)', color: '#f4f4f4' } } } });
+
+            new Chart(document.getElementById('chart-chamber'), { type: 'scatter', data: { datasets: [
+                { label: 'Hot-fire', data: expChamberP, borderColor: '#f4f4f4', showLine: true, borderWidth: 2, pointRadius: 0 },
+                { label: 'TAS-I Sim', data: simChamberP, borderColor: '#0f62fe', showLine: true, borderDash: [4,4], borderWidth: 2, pointRadius: 0 }
+            ]}, options: { ...commonOptions, plugins: { ...commonOptions.plugins, title: { display: true, text: 'Chamber Pressure (bar)', color: '#f4f4f4' } } } });
+
+            new Chart(document.getElementById('chart-thrust'), { type: 'scatter', data: { datasets: [
+                { label: 'Hot-fire', data: expThrust, borderColor: '#f4f4f4', showLine: true, borderWidth: 2, pointRadius: 0 },
+                { label: 'TAS-I Sim', data: simThrust, borderColor: '#0f62fe', showLine: true, borderDash: [4,4], borderWidth: 2, pointRadius: 0 }
+            ]}, options: { ...commonOptions, plugins: { ...commonOptions.plugins, title: { display: true, text: 'Thrust (kgf)', color: '#f4f4f4' } } } });
+
+            // Counter animation
+            document.querySelectorAll('.counter').forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                ScrollTrigger.create({ trigger: counter, start: "top 85%", onEnter: () => {
+                    let current = 0; const increment = target / 60;
+                    const timer = setInterval(() => { current += increment; if (current >= target) { counter.textContent = target.toLocaleString(); clearInterval(timer); } else { counter.textContent = Math.floor(current).toLocaleString(); } }, 20);
+                }, once: true });
+            });
+
+            // FAQ
+            document.querySelectorAll('.faq-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const answer = btn.nextElementSibling; const chevron = btn.querySelector('.faq-chevron');
+                    const isOpen = answer.classList.contains('open');
+                    document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+                    document.querySelectorAll('.faq-chevron').forEach(c => c.classList.remove('open'));
+                    if (!isOpen) { answer.classList.add('open'); chevron.classList.add('open'); }
+                });
+            });
+
+            // Mobile menu
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => { document.getElementById('mobile-menu').classList.toggle('hidden'); });
+            document.querySelectorAll('#mobile-menu a').forEach(a => { a.addEventListener('click', () => { document.getElementById('mobile-menu').classList.add('hidden'); }); });
+
+            // Particles
+            const container = document.getElementById('particles-container');
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div'); p.className = 'particle';
+                p.style.left = Math.random()*100 + '%'; p.style.top = Math.random()*100 + '%';
+                p.style.animation = `float ${3+Math.random()*5}s ease-in-out infinite ${Math.random()*3}s`;
+                container.appendChild(p);
+            }
+
+            // Nav scroll
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('main-nav');
+                nav.style.backgroundColor = window.scrollY > 100 ? 'rgba(22,22,22,0.95)' : 'rgba(22,22,22,0.8)';
+            });
+        });
+    </script>
+</body>
+</html>
